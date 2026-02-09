@@ -7,10 +7,21 @@
 #include <array>
 #include <map>
 #include <set>
+#include <list>
 
 //-----------------------------------------------------------------------------
 
-uint32_t ipToKey(const std::vector<std::string> &ip)
+inline uint32_t ipToKey(uint8_t first, uint8_t second, uint8_t third, uint8_t fourth)
+{
+    return (static_cast<uint32_t>(first) << 24) |
+           (static_cast<uint32_t>(second) << 16) |
+           (static_cast<uint32_t>(third) << 8) |
+           (static_cast<uint32_t>(fourth));
+}
+
+//-----------------------------------------------------------------------------
+
+inline uint32_t ipToKey(const std::vector<std::string> &ip)
 {
     if (ip.size() != 4)
     {
@@ -24,13 +35,10 @@ uint32_t ipToKey(const std::vector<std::string> &ip)
         {
             throw std::invalid_argument("Invalid IPv4 octet: " + s);
         }
-        return static_cast<uint32_t>(v);
+        return static_cast<uint8_t>(v);
     };
 
-    return (octet(ip[0]) << 24) |
-           (octet(ip[1]) << 16) |
-           (octet(ip[2]) << 8) |
-           (octet(ip[3]));
+    return ipToKey(octet(ip[0]), octet(ip[1]), octet(ip[2]), octet(ip[3]));
 }
 
 //-----------------------------------------------------------------------------
@@ -45,16 +53,9 @@ auto keyToIp(uint32_t key_ip) -> std::array<std::uint8_t, 4>
     };
 };
 
-// ("",  '.') -> [""]
-// ("11", '.') -> ["11"]
-// ("..", '.') -> ["", "", ""]
-// ("11.", '.') -> ["11", ""]
-// (".11", '.') -> ["", "11"]
-// ("11.22", '.') -> ["11", "22"]
-
 //-----------------------------------------------------------------------------
 
-std::vector<std::string> split(const std::string &str, char d)
+inline std::vector<std::string> split(const std::string &str, char d)
 {
     std::vector<std::string> r;
 
@@ -75,136 +76,91 @@ std::vector<std::string> split(const std::string &str, char d)
 
 //-----------------------------------------------------------------------------
 
+inline auto range(std::multiset<uint32_t>::const_iterator begin,
+                  std::multiset<uint32_t>::const_iterator end) -> std::list<uint32_t>
+{
+    std::list<uint32_t> result;
+    for (auto it = begin; it != end; ++it)
+    {
+        result.push_back(*it);
+    }
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+
+inline auto filter(const std::multiset<uint32_t> &ip_pool, uint8_t first) -> std::list<uint32_t>
+{
+    auto begin = ip_pool.lower_bound(ipToKey(first, 0, 0, 0));
+    auto end   = ip_pool.upper_bound(ipToKey(first, 255, 255, 255));
+    return range(begin, end);
+}
+
+//-----------------------------------------------------------------------------
+
+inline auto filter(const std::multiset<uint32_t> &ip_pool, uint8_t first, uint8_t second) -> std::list<uint32_t>
+{
+    auto begin = ip_pool.lower_bound(ipToKey(first, second, 0, 0));
+    auto end   = ip_pool.upper_bound(ipToKey(first, second, 255, 255));
+    return range(begin, end);
+}
+
+//-----------------------------------------------------------------------------
+
+inline auto filter_any(const std::multiset<uint32_t> &ip_pool, uint8_t any) -> std::list<uint32_t>
+{
+    std::list<uint32_t> result;
+    for (auto it = ip_pool.begin(); it != ip_pool.end(); ++it)
+    {
+        const auto &[first, second, third, fourth] = keyToIp(*it);
+        if (first == any || second == any || third == any || fourth == any)
+        {
+            result.push_back(*it);
+        }
+    }
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+
+inline void print(const std::list<uint32_t> &ip)
+{
+    for (auto it = ip.rbegin(); it != ip.rend(); ++it)
+    {
+        const auto &[first, second, third, fourth] = keyToIp(*it);
+        std::cout << +first << "." << +second << "." << +third << "." << +fourth << '\n';
+    }
+}
+
+//-----------------------------------------------------------------------------
+
 int main(int, const char *[])
 {
     try
     {
-        std::set<uint32_t> ip_pool;
+        std::multiset<uint32_t> ip_pool;
 
         for (std::string line; std::getline(std::cin, line);)
         {
-            std::vector<std::string> v = split(line, '\t');
+            auto v = split(line, '\t');
             ip_pool.emplace(ipToKey(split(v.at(0), '.')));
         }
 
-        /*
-         * 1.   Полный список адресов после сортировки. Одна строка - один адрес.
-         */
+        // 1) Полный список адресов после сортировки. Одна строка - один адрес.
+        auto ip = range(ip_pool.begin(), ip_pool.end());
+        print(ip);
 
-        auto begin = --ip_pool.begin();
-        auto end   = --ip_pool.end();
-        for (auto it = end; it != begin; --it)
-        {
-            const auto &[first, second, third, fourth] = keyToIp(*it);
-            std::cout << +first << "." << +second << "." << +third << "." << +fourth << '\n';
-        }
+        // 2) Cписок адресов, первый байт которых равен 1.
+        ip = filter(ip_pool, 1);
+        print(ip);
 
-        /*
-         * 2.   Сразу следом список адресов, первый байт которых равен 1.
-         *      Порядок сортировки не меняется.
-         *      Одна строка - один адрес. Списки ничем не разделяются.
-         */
+        // 3) Cписок адресов, первый байт которых равен 46, а второй 70.
+        ip = filter(ip_pool, 46, 70);
+        print(ip);
 
-        begin = --ip_pool.lower_bound(ipToKey({"1", "0", "0", "0"}));
-        end   = --ip_pool.upper_bound(ipToKey({"1", "255", "255", "255"}));
-        for (auto it = end; it != begin; --it)
-        {
-            const auto &[first, second, third, fourth] = keyToIp(*it);
-            std::cout << +first << "." << +second << "." << +third << "." << +fourth << '\n';
-        }
-
-        /*
-         * 3.   Сразу продолжается список адресов, первый байт которых равен 46, а второй 70.
-         *      Порядок сортировки не меняется.
-         *      Одна строка - один адрес. Списки ничем не разделяются.
-         */
-
-        begin = --ip_pool.lower_bound(ipToKey({"46", "70", "0", "0"}));
-        end   = --ip_pool.upper_bound(ipToKey({"46", "70", "255", "255"}));
-        for (auto it = end; it != begin; --it)
-        {
-            const auto &[first, second, third, fourth] = keyToIp(*it);
-            std::cout << +first << "." << +second << "." << +third << "." << +fourth << '\n';
-        }
-
-        /*
-         * 4.   Сразу продолжается список адресов, любой байт которых равен 46.
-         *      Порядок сортировки не меняется.
-         *      Одна строка - один адрес.
-         *      Списки ничем не разделяются.
-         */
-
-        for (auto it = ip_pool.rbegin(); it != ip_pool.rend(); ++it)
-        {
-            const auto &[first, second, third, fourth] = keyToIp(*it);
-            if (first == 46 || second == 46 || third == 46 || fourth == 46)
-            {
-                std::cout << +first << "." << +second << "." << +third << "." << +fourth << '\n';
-            }
-        }
-
-        // 222.173.235.246
-        // 222.130.177.64
-        // 222.82.198.61
-        // ...
-        // 1.70.44.170
-        // 1.29.168.152
-        // 1.1.234.8
-
-        // TODO filter by first byte and output
-        // ip = filter(1)
-
-        // 1.231.69.33
-        // 1.87.203.225
-        // 1.70.44.170
-        // 1.29.168.152
-        // 1.1.234.8
-
-        // TODO filter by first and second bytes and output
-        // ip = filter(46, 70)
-
-        // 46.70.225.39
-        // 46.70.147.26
-        // 46.70.113.73
-        // 46.70.29.76
-
-        // TODO filter by any byte and output
-        // ip = filter_any(46)
-
-        // 186.204.34.46
-        // 186.46.222.194
-        // 185.46.87.231
-        // 185.46.86.132
-        // 185.46.86.131
-        // 185.46.86.131
-        // 185.46.86.22
-        // 185.46.85.204
-        // 185.46.85.78
-        // 68.46.218.208
-        // 46.251.197.23
-        // 46.223.254.56
-        // 46.223.254.56
-        // 46.182.19.219
-        // 46.161.63.66
-        // 46.161.61.51
-        // 46.161.60.92
-        // 46.161.60.35
-        // 46.161.58.202
-        // 46.161.56.241
-        // 46.161.56.203
-        // 46.161.56.174
-        // 46.161.56.106
-        // 46.161.56.106
-        // 46.101.163.119
-        // 46.101.127.145
-        // 46.70.225.39
-        // 46.70.147.26
-        // 46.70.113.73
-        // 46.70.29.76
-        // 46.55.46.98
-        // 46.49.43.85
-        // 39.46.86.85
-        // 5.189.203.46
+        // 4) Cписок адресов, любой байт которых равен 46.
+        ip = filter_any(ip_pool, 46);
+        print(ip);
     }
     catch (const std::exception &e)
     {
