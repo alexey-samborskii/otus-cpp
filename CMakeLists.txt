@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(ip_filter)
+set(PROJECT_VERSION_MAJOR 0)
+set(PROJECT_VERSION_MINOR 0)
+set(PROJECT_VERSION_PATCH 1)
+
+if(DEFINED PATCH_VERSION)
+  set(PROJECT_VERSION_PATCH ${PATCH_VERSION})
+endif()
+
+project(ip_filter
+        VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
+        LANGUAGES CXX)
 
 enable_testing()
 
