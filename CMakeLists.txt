@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(ip_filter VERSION 0.1.0 LANGUAGES CXX)
+project(ip_filter)
 
 enable_testing()
 
