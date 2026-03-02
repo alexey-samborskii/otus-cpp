@@ -11,9 +11,9 @@
             "program": "/bin/bash",
             "args": [
                 "-lc",
-                "exec \"${workspaceFolder}/build/ip_filter\" < \"${workspaceFolder}/ip_filter.tsv\""
+                "exec \"${workspaceFolder}/build/ip_filter\" < \"${workspaceFolder}/build/ip_filter.tsv\""
             ],
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/build",
             "stopAtEntry": false,
             "externalConsole": false,
             "MIMode": "gdb",
