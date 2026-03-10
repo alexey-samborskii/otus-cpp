@@ -6,6 +6,7 @@ on:
       - master
       - feature/github_actions
       - feature/ip_filter
+      - feature/allocatoor
 
 jobs:
   build:
