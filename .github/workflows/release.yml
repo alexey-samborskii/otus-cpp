@@ -41,5 +41,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ steps.find_deb.outputs.DEB_FILE }}
-          asset_name: ip_filter-${{ github.run_number }}.deb
+          asset_name: allocator-${{ github.run_number }}.deb
           asset_content_type: application/vnd.debian.binary-package
