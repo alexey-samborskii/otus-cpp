@@ -1,12 +1,12 @@
-add_executable(ip_filter
+add_executable(alllocator
     main.cpp
 )
 
-target_include_directories(ip_filter 
+target_include_directories(alllocator 
     PRIVATE 
         ${PROJECT_SOURCE_DIR}/src
 )
 
-install(TARGETS ip_filter RUNTIME DESTINATION bin)
+install(TARGETS alllocator RUNTIME DESTINATION bin)
 
 

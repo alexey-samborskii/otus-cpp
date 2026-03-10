@@ -31,7 +31,7 @@ add_subdirectory(tests)
 
 include(InstallRequiredSystemLibraries)
 
-set(CPACK_PACKAGE_NAME "ip-filter")
+set(CPACK_PACKAGE_NAME "alllocator")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "otus")

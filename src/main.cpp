@@ -1,38 +1,68 @@
-#include "ip_filter.hpp"
 #include <iostream>
+#include <map>
 
-int main(int, const char*[])
+#include "allocator.h"
+#include "container.h"
+
+//------------------------------------------------------------------------------
+
+int factorial(int n)
 {
-    try
-    {
-        IpStorage ip_storage;
+    int r = 1;
 
-        for (std::string line; std::getline(std::cin, line);)
-        {
-            auto pos    = line.find('\t');
-            auto ip_str = (pos == std::string::npos) ?
-                              std::string_view(line) :
-                              std::string_view(line).substr(0, pos);
-            ip_storage.emplace(ip_str);
-        }
+    for (int i = 1; i <= n; i++)
+        r *= i;
 
-        for (const auto& ip : ip_storage.ip_pool())
-            std::cout << ip << '\n';
-
-        for (const auto& ip : ip_storage.filter_ip(1))
-            std::cout << ip << '\n';
-
-        for (const auto& ip : ip_storage.filter_ip(46, 70))
-             std::cout << ip << '\n';
-
-        for (const auto& ip : ip_storage.filter_any(46))
-             std::cout << ip << '\n';
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
+    return r;
 }
+
+//------------------------------------------------------------------------------
+
+int main()
+{
+    std::cout << "std::map default allocator\n";
+
+    std::map<int, int> m;
+
+    for (int i = 0; i < 10; i++)
+        m[i] = factorial(i);
+
+    for (auto &v : m)
+        std::cout << v.first << " " << v.second << std::endl;
+
+    std::cout << "\nstd::map custom allocator\n";
+
+    std::map<int,
+             int,
+             std::less<int>,
+             CustomAllocator<std::pair<const int, int>, 10>>
+        m2;
+
+    for (int i = 0; i < 10; i++)
+        m2[i] = factorial(i);
+
+    for (auto &v : m2)
+        std::cout << v.first << " " << v.second << std::endl;
+
+    std::cout << "\nMyContainer default allocator\n";
+
+    MyContainer<int> c;
+
+    for (int i = 0; i < 10; i++)
+        c.push(i);
+
+    for (auto v : c)
+        std::cout << v << std::endl;
+
+    std::cout << "\nMyContainer custom allocator\n";
+
+    MyContainer<int, CustomAllocator<int, 10>> c2;
+
+    for (int i = 0; i < 10; i++)
+        c2.push(i);
+
+    for (auto v : c2)
+        std::cout << v << std::endl;
+}
+
+//------------------------------------------------------------------------------
