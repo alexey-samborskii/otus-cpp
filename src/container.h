@@ -11,8 +11,7 @@ class MyContainer
         Node* next;
     };
 
-    using NodeAlloc =
-        typename std::allocator_traits<Alloc>::template rebind_alloc<Node>;
+    using NodeAlloc = typename std::allocator_traits<Alloc>::template rebind_alloc<Node>;
 
 public:
     MyContainer()
@@ -24,9 +23,7 @@ public:
     {
         Node* node = alloc.allocate(1);
 
-        std::allocator_traits<NodeAlloc>::construct(
-            alloc,
-            node);
+        std::allocator_traits<NodeAlloc>::construct(alloc, node);
 
         node->value = value;
         node->next  = head;
