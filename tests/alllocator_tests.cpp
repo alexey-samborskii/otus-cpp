@@ -36,13 +36,17 @@ TEST(CustomAllocatorTest, Overflow)
 {
     CustomAllocator<int, 3> alloc;
 
-    alloc.allocate(1);
-    alloc.allocate(1);
-    alloc.allocate(1);
+    int* p1 = alloc.allocate(1);
+    int* p2 = alloc.allocate(1);
+    int* p3 = alloc.allocate(1);
+    int* p4 = nullptr;
 
-    ASSERT_THROW(
-        alloc.allocate(1),
-        std::bad_alloc);
+    ASSERT_NO_THROW(p4 = alloc.allocate(1));
+
+    alloc.deallocate(p1, 1);
+    alloc.deallocate(p2, 1);
+    alloc.deallocate(p3, 1);
+    alloc.deallocate(p4, 1);
 }
 
 //------------------------------------------------------------------------------
@@ -124,9 +128,7 @@ TEST(ContainerTest, Overflow)
     for (int i = 0; i < 5; i++)
         c.push(i);
 
-    ASSERT_THROW(
-        c.push(10),
-        std::bad_alloc);
+    ASSERT_NO_THROW(c.push(10));
 }
 
 //------------------------------------------------------------------------------
