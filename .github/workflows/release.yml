@@ -7,6 +7,7 @@ on:
       - feature/github_actions
       - feature/ip_filter
       - feature/allocatoor
+      - feature/sfinae
 
 jobs:
   build:
