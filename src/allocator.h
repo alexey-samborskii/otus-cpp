@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <new>
+#include <array>
+#include <bitset>
 
 template <typename T, std::size_t N>
 class CustomAllocator
@@ -17,11 +19,7 @@ public:
 
     CustomAllocator() noexcept
     {
-        for (std::size_t i = 0; i < N; ++i)
-        {
-            buffer[i].ptr = free_list_;
-            free_list_    = &buffer[i];
-        }
+        elements_free.set();
     }
 
     template <class U>
@@ -31,40 +29,78 @@ public:
 
     T* allocate(std::size_t n)
     {
-        if (n == 1 && free_list_ != nullptr)
+        if (n == 0)
+            throw std::bad_alloc{};
+
+        if (n > N)
+            return static_cast<T*>(::operator new(n * sizeof(T)));
+
+        std::size_t consecutive_free = 0;
+
+        for (std::size_t idx = 0; idx < N; ++idx)
         {
-            Node* node = free_list_;
-            free_list_ = node->ptr;
-            return reinterpret_cast<T*>(node);
+            if (elements_free[idx])
+            {
+                consecutive_free++;
+                
+                if (consecutive_free == n)
+                {
+                    std::size_t start = idx - n + 1;
+
+                    for (std::size_t i = 0; i < n; ++i)
+                    {
+                        elements_free.reset(start + i);
+                    }
+
+                    return reinterpret_cast<T*>(&buffer[start].storage);
+                }
+            }
+            else
+            {
+                consecutive_free = 0;
+            }
         }
 
-        return static_cast<T*>(::operator new(n * sizeof(T)));
+        throw std::bad_alloc{};
     }
 
     void deallocate(T* p, std::size_t n) noexcept
     {
-        Node* begin = buffer;
-        Node* end   = buffer + N;
-        Node* node  = reinterpret_cast<Node*>(p);
+        if (!p)
+            return;
 
-        if (node >= begin && node < end)
+        auto* begin = reinterpret_cast<std::byte*>(&buffer[0]);
+        auto* end   = reinterpret_cast<std::byte*>(&buffer[N]);
+        auto* ptr   = reinterpret_cast<std::byte*>(p);
+
+        if (ptr < begin || ptr >= end)
         {
-            node->ptr  = free_list_;
-            free_list_ = node;
+            ::operator delete(p, n * sizeof(T)); 
+            return;
         }
-        else
+
+        auto offset = ptr - begin;
+
+        if (offset % sizeof(Node) != 0)
+            return;
+
+        std::size_t idx = offset / sizeof(Node);
+
+        if (idx + n > N)
+            return;
+
+        for (std::size_t i = 0; i < n; ++i)
         {
-            ::operator delete(p);
+            elements_free.set(idx + i);
         }
     }
 
 private:
-    union Node
+    struct Node
     {
-        Node* ptr;
         alignas(T) unsigned char storage[sizeof(T)];
     };
 
-    Node  buffer[N];
-    Node* free_list_{nullptr};
+    std::array<Node, N> buffer;
+    std::bitset<N>      elements_free;
 };
