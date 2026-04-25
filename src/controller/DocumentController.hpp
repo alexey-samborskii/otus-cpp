@@ -8,26 +8,26 @@
 class DocumentController
 {
 public:
-    explicit DocumentController(Document& document)
-        : document_(document)
+    explicit DocumentController(std::shared_ptr<Document> document)
+        : document_(std::move(document))
     {
     }
 
     void createNewDocument()
     {
-        document_.clear();
+        document_->clear();
     }
 
     void addPrimitive(std::unique_ptr<GraphicPrimitive> primitive)
     {
-        document_.addPrimitive(std::move(primitive));
+        document_->addPrimitive(std::move(primitive));
     }
 
     void removePrimitive(std::size_t index)
     {
-        document_.removePrimitive(index);
+        document_->removePrimitive(index);
     }
 
 private:
-    Document& document_;
+    std::shared_ptr<Document> document_;
 };
