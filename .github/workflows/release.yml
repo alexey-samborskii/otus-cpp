@@ -8,6 +8,7 @@ on:
       - feature/ip_filter
       - feature/allocatoor
       - feature/sfinae
+      - feature/editor
 
 jobs:
   build:
