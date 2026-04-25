@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <string>
+#include <sstream>
 
 class Line final : public GraphicPrimitive
 {
@@ -26,6 +27,14 @@ public:
     std::string type() const override
     {
         return "Line";
+    }
+
+    std::string serialize() const override
+    {
+        std::ostringstream out;
+        out << "LINE " << start_.x << ' ' << start_.y << ' '
+            << end_.x << ' ' << end_.y;
+        return out.str();
     }
 
 private:

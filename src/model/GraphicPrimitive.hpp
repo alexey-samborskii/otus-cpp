@@ -13,6 +13,7 @@ class GraphicPrimitive
 public:
     virtual ~GraphicPrimitive() = default;
 
-    virtual void        draw() const = 0;
-    virtual std::string type() const = 0;
+    virtual void        draw() const      = 0;
+    virtual std::string type() const      = 0;
+    virtual std::string serialize() const = 0;
 };

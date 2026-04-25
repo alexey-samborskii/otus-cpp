@@ -1,133 +1,104 @@
 #pragma once
 
+#include "../model/Circle.hpp"
 #include "../model/Document.hpp"
+#include "../model/Line.hpp"
+#include "../model/Rectangle.hpp"
 
 #include <filesystem>
-#include <string>
 #include <fstream>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
 
 class FileManager
 {
 public:
     static bool importDocument(const std::filesystem::path& file_path, Document& document)
     {
-        std::ifstream file(file_path);
-
-        if (!file.is_open())
+        const auto content = readFile(file_path);
+        if (content.empty())
         {
-            std::cerr << "[FileManager] Failed to open file for import: "
-                      << file_path << '\n';
             return false;
         }
 
+        std::istringstream input(content);
         document.clear();
 
         std::string type;
-
-        while (file >> type)
+        while (input >> type)
         {
             if (type == "RECTANGLE")
             {
-                double x{};
-                double y{};
-                double width{};
-                double height{};
-
-                file >> x >> y >> width >> height;
-
-                document.addPrimitive(
-                    std::make_unique<Rectangle>(
-                        Point{x, y},
-                        width,
-                        height));
+                double x{}, y{}, width{}, height{};
+                input >> x >> y >> width >> height;
+                document.addPrimitive(std::make_unique<Rectangle>(Point{x, y}, width, height));
             }
             else if (type == "CIRCLE")
             {
-                double x{};
-                double y{};
-                double radius{};
-
-                file >> x >> y >> radius;
-
-                document.addPrimitive(
-                    std::make_unique<Circle>(
-                        Point{x, y},
-                        radius));
+                double x{}, y{}, radius{};
+                input >> x >> y >> radius;
+                document.addPrimitive(std::make_unique<Circle>(Point{x, y}, radius));
             }
             else if (type == "LINE")
             {
-                double x1{};
-                double y1{};
-                double x2{};
-                double y2{};
-
-                file >> x1 >> y1 >> x2 >> y2;
-
-                document.addPrimitive(
-                    std::make_unique<Line>(
-                        Point{x1, y1},
-                        Point{x2, y2}));
-            }
-            else
-            {
-                std::cerr << "[FileManager] Unknown primitive type: "
-                          << type << '\n';
-                return false;
+                double x1{}, y1{}, x2{}, y2{};
+                input >> x1 >> y1 >> x2 >> y2;
+                document.addPrimitive(std::make_unique<Line>(Point{x1, y1}, Point{x2, y2}));
             }
         }
 
-        std::cout << "[FileManager] Import document from: "
-                  << file_path << '\n';
-
+        std::cout << "[FileManager] Import document from: " << file_path << '\n';
         return true;
     }
 
     static bool exportDocument(const std::filesystem::path& file_path, const Document& document)
     {
-        std::ofstream file(file_path);
-
-        if (!file.is_open())
-        {
-            std::cerr << "[FileManager] Failed to open file for export: "
-                      << file_path << '\n';
-            return false;
-        }
+        std::ostringstream output;
 
         for (const auto& primitive : document.primitives())
         {
-            if (primitive->type() == "Rectangle")
-            {
-                file << "RECTANGLE 10 20 100 50\n";
-            }
-            else if (primitive->type() == "Circle")
-            {
-                file << "CIRCLE 50 50 25\n";
-            }
-            else if (primitive->type() == "Line")
-            {
-                file << "LINE 0 0 100 100\n";
-            }
+            output << primitive->serialize() << '\n';
         }
 
-        std::cout << "[FileManager] Export document to: "
-                  << file_path << '\n';
+        const bool ok = writeFile(file_path, output.str());
 
-        return true;
+        if (ok)
+        {
+            std::cout << "[FileManager] Export document to: " << file_path << '\n';
+        }
+
+        return ok;
     }
 
 private:
     static std::string readFile(const std::filesystem::path& file_path)
     {
-        (void)file_path;
+        std::ifstream file(file_path);
+        if (!file)
+        {
+            std::cerr << "[FileManager] Failed to open file for reading: "
+                      << file_path << '\n';
+            return {};
+        }
 
-        return {};
+        std::ostringstream buffer;
+        buffer << file.rdbuf();
+        return buffer.str();
     }
 
     static bool writeFile(const std::filesystem::path& file_path, const std::string& content)
     {
-        (void)file_path;
-        (void)content;
+        std::ofstream file(file_path);
+        if (!file)
+        {
+            std::cerr << "[FileManager] Failed to open file for writing: "
+                      << file_path << '\n';
+            return false;
+        }
 
+        file << content;
         return true;
     }
 };

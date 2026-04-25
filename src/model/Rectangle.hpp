@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <string>
+#include <sstream>
 
 class Rectangle final : public GraphicPrimitive
 {
@@ -29,8 +30,16 @@ public:
         return "Rectangle";
     }
 
+    std::string serialize() const override
+    {
+        std::ostringstream out;
+        out << "RECTANGLE " << position_.x << ' ' << position_.y << ' '
+            << width_ << ' ' << height_;
+        return out.str();
+    }
+
 private:
-    Point position_{};
+    Point  position_{};
     double width_{};
     double height_{};
 };
