@@ -1,12 +1,12 @@
-add_executable(alllocator
+add_executable(editor
     main.cpp
 )
 
-target_include_directories(alllocator 
+target_include_directories(editor
     PRIVATE 
         ${PROJECT_SOURCE_DIR}/src
 )
 
-install(TARGETS alllocator RUNTIME DESTINATION bin)
+install(TARGETS editor RUNTIME DESTINATION bin)
 
 

@@ -1,68 +1,81 @@
+#include "app/Application.hpp"
+#include "factory/PrimitiveFactory.hpp"
+
 #include <iostream>
-#include <map>
 
-#include "allocator.h"
-#include "container.h"
-
-//------------------------------------------------------------------------------
-
-int factorial(int n)
+namespace
 {
-    int r = 1;
 
-    for (int i = 1; i <= n; i++)
-        r *= i;
-
-    return r;
+void onCreateNewDocument(Application& app)
+{
+    std::cout << "[GUI]\tCreate new document\n";
+    app.createNewDocument();
 }
 
-//------------------------------------------------------------------------------
+void onImportDocument(Application& app)
+{
+    std::cout << "[GUI]\tImport document\n";
+    app.importDocument("output.editor");
+}
+
+void onExportDocument(Application& app)
+{
+    std::cout << "[GUI]\tExport document\n";
+    app.exportDocument("output.editor");
+}
+
+void onCreateRectangle(Application& app)
+{
+    std::cout << "[GUI]\tCreate rectangle\n";
+    app.createRectangle();
+}
+
+void onCreateCircle(Application& app)
+{
+    std::cout << "[GUI]\tCreate circle\n";
+    app.createCircle();
+}
+
+void onCreateLine(Application& app)
+{
+    std::cout << "[GUI]\tCreate line\n";
+    app.createLine();
+}
+
+void onDeletePrimitive(Application& app)
+{
+    std::cout << "[GUI]\tDelete primitive\n";
+    app.deletePrimitive(0);
+}
+
+} // namespace
 
 int main()
 {
-    std::cout << "std::map default allocator\n";
+    Application app;
 
-    std::map<int, int> m;
+    std::cout << "\n--------------------------------------------------\n";
+    std::cout << "Scenario 1: create new document\n";
+    onCreateNewDocument(app);
+    onCreateRectangle(app);
+    onCreateCircle(app);
+    onCreateLine(app);
+    onExportDocument(app);
+    
+    std::cout << "\n--------------------------------------------------\n";
+    std::cout << "Scenario 2: export, clear and import document\n";
+    onExportDocument(app);
 
-    for (int i = 0; i < 10; i++)
-        m[i] = factorial(i);
+    std::cout << "[GUI]\tClear document\n";
+    app.createNewDocument();
 
-    for (auto &v : m)
-        std::cout << v.first << " " << v.second << std::endl;
+    std::cout << "[GUI]\tCurrent document after clear\n";
+    app.render();
 
-    std::cout << "\nstd::map custom allocator\n";
+    onImportDocument(app);
 
-    std::map<int,
-             int,
-             std::less<int>,
-             CustomAllocator<std::pair<const int, int>, 10>>
-        m2;
+    std::cout << "[GUI]\tCurrent document after import\n";
+    app.render();
 
-    for (int i = 0; i < 10; i++)
-        m2[i] = factorial(i);
-
-    for (auto &v : m2)
-        std::cout << v.first << " " << v.second << std::endl;
-
-    std::cout << "\nMyContainer default allocator\n";
-
-    MyContainer<int> c;
-
-    for (int i = 0; i < 10; i++)
-        c.push(i);
-
-    for (auto v : c)
-        std::cout << v << std::endl;
-
-    std::cout << "\nMyContainer custom allocator\n";
-
-    MyContainer<int, CustomAllocator<int, 10>> c2;
-
-    for (int i = 0; i < 10; i++)
-        c2.push(i);
-
-    for (auto v : c2)
-        std::cout << v << std::endl;
+    return 0;
 }
-
-//------------------------------------------------------------------------------
