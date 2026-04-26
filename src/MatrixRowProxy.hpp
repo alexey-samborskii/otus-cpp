@@ -1,26 +1,28 @@
 #pragma once
 
 #include "MatrixCellProxy.hpp"
-#include "MatrixFwd.hpp"
+#include "MatrixStorage.hpp"
 
 template <typename T, T DefaultValue>
 class MatrixRowProxy
 {
 public:
-    using index_type = int;
+    using index_type   = int;
+    using storage_type = MatrixStorage<T, DefaultValue>;
+    using CellProxy    = MatrixCellProxy<T, DefaultValue>;
 
-    MatrixRowProxy(Matrix<T, DefaultValue>& matrix, index_type x)
-        : matrix_(matrix)
+    MatrixRowProxy(storage_type& storage, index_type x)
+        : storage_(storage)
         , x_(x)
     {
     }
 
-    MatrixCellProxy<T, DefaultValue> operator[](index_type y)
+    CellProxy operator[](index_type y)
     {
-        return MatrixCellProxy<T, DefaultValue>{matrix_, x_, y};
+        return CellProxy{storage_, x_, y};
     }
 
 private:
-    Matrix<T, DefaultValue>& matrix_;
-    index_type               x_{};
+    storage_type& storage_;
+    index_type    x_{};
 };

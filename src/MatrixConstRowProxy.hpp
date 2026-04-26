@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MatrixFwd.hpp"
+#include "MatrixStorage.hpp"
 
 template <typename T, T DefaultValue>
 class MatrixConstRowProxy
@@ -8,19 +8,20 @@ class MatrixConstRowProxy
 public:
     using index_type        = int;
     using stored_value_type = T;
+    using storage_type      = MatrixStorage<T, DefaultValue>;
 
-    MatrixConstRowProxy(const Matrix<T, DefaultValue>& matrix, index_type x)
-        : matrix_(matrix)
+    MatrixConstRowProxy(const storage_type& storage, index_type x)
+        : storage_(storage)
         , x_(x)
     {
     }
 
     stored_value_type operator[](index_type y) const
     {
-        return matrix_.get(x_, y);
+        return storage_.get(x_, y);
     }
 
 private:
-    const Matrix<T, DefaultValue>& matrix_;
-    index_type                     x_{};
+    const storage_type& storage_;
+    index_type          x_{};
 };

@@ -4,6 +4,9 @@ template <typename T, T DefaultValue>
 class Matrix;
 
 template <typename T, T DefaultValue>
+class MatrixStorage;
+
+template <typename T, T DefaultValue>
 class MatrixCellProxy;
 
 template <typename T, T DefaultValue>
