@@ -1,81 +1,98 @@
-#include "app/Application.hpp"
-#include "factory/PrimitiveFactory.hpp"
+#include "Matrix.hpp"
 
+#include <cassert>
 #include <iostream>
 
-namespace
-{
+//------------------------------------------------------------------------------
 
-void onCreateNewDocument(Application& app)
+template <typename T, T DefaultValue>
+void printMatrixFragment(
+    const Matrix<T, DefaultValue>& matrix,
+    int                            x_from,
+    int                            x_to,
+    int                            y_from,
+    int                            y_to)
 {
-    std::cout << "[GUI]\tCreate new document\n";
-    app.createNewDocument();
+    std::cout << "matrix "
+              << "[" << x_from << ".." << x_to << "]"
+              << "[" << y_from << ".." << y_to << "]"
+              << ":\n";
+    for (int x = x_from; x <= x_to; ++x)
+    {
+        std::cout << "  ";
+        for (int y = y_from; y <= y_to; ++y)
+        {
+            std::cout << matrix[x][y];
+            if (y != y_to)
+                std::cout << ' ';
+        }
+        std::cout << '\n';
+    }
 }
 
-void onImportDocument(Application& app)
+//------------------------------------------------------------------------------
+
+template <typename T, T DefaultValue>
+void printOccupiedCells(const Matrix<T, DefaultValue>& matrix)
 {
-    std::cout << "[GUI]\tImport document\n";
-    app.importDocument("output.editor");
+    std::cout << "\nmatrix.size()==(" << matrix.size() << ")\n\n";
+    std::cout << "cells:\n";
+    for (const auto& cell : matrix)
+    {
+        const auto [x, y, value] = cell;
+        std::cout << "    [" << x << ',' << y << "]=(" << value << ")\n";
+    }
 }
 
-void onExportDocument(Application& app)
+//------------------------------------------------------------------------------
+
+void runSelfTest()
 {
-    std::cout << "[GUI]\tExport document\n";
-    app.exportDocument("output.editor");
+    Matrix<int, -1> matrix;
+
+    assert(matrix.size() == 0);
+
+    const auto a = matrix[0][0];
+
+    assert(a == -1);
+    assert(matrix.size() == 0);
+
+    matrix[100][100] = 314;
+
+    assert(matrix[100][100] == 314);
+    assert(matrix.size() == 1);
+
+    ((matrix[100][100] = 314) = 0) = 217;
+
+    assert(matrix[100][100] == 217);
+    assert(matrix.size() == 1);
+
+    for (auto c : matrix)
+    {
+        const auto [x, y, v] = c;
+        std::cout << x << y << v << std::endl;
+    }
+
+    std::cout << "self-test:\n";
+    std::cout << "    ok\n\n";
 }
 
-void onCreateRectangle(Application& app)
-{
-    std::cout << "[GUI]\tCreate rectangle\n";
-    app.createRectangle();
-}
-
-void onCreateCircle(Application& app)
-{
-    std::cout << "[GUI]\tCreate circle\n";
-    app.createCircle();
-}
-
-void onCreateLine(Application& app)
-{
-    std::cout << "[GUI]\tCreate line\n";
-    app.createLine();
-}
-
-void onDeletePrimitive(Application& app)
-{
-    std::cout << "[GUI]\tDelete primitive\n";
-    app.deletePrimitive(0);
-}
-
-} // namespace
+//------------------------------------------------------------------------------
 
 int main()
 {
-    Application app;
+    runSelfTest();
 
-    std::cout << "\n--------------------------------------------------\n";
-    std::cout << "Scenario 1: create new document\n";
-    onCreateNewDocument(app);
-    onCreateRectangle(app);
-    onCreateCircle(app);
-    onCreateLine(app);
-    onExportDocument(app);
-    
-    std::cout << "\n--------------------------------------------------\n";
-    std::cout << "Scenario 2: export, clear and import document\n";
-    onExportDocument(app);
-
-    std::cout << "[GUI]\tClear document\n";
-    app.createNewDocument();
-
-    std::cout << "[GUI]\tCurrent document after clear\n";
-    app.render();
-
-    onImportDocument(app);
-
-    std::cout << "[GUI]\tCurrent document after import\n";
-    app.render();
+    Matrix<int, 0> matrix;
+    for (int i = 0; i < 10; ++i)
+    {
+        matrix[i][i]     = i;
+        matrix[i][9 - i] = 9 - i;
+    }
+    printMatrixFragment(matrix, 1, 8, 1, 8);
+    printOccupiedCells(matrix);
 
     return 0;
 }
+
+//------------------------------------------------------------------------------

@@ -9,6 +9,7 @@ on:
       - feature/allocatoor
       - feature/sfinae
       - feature/editor
+      - feature/matrix      
 
 jobs:
   build:

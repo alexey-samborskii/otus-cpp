@@ -8,7 +8,7 @@ if(DEFINED PATCH_VERSION)
   set(PROJECT_VERSION_PATCH ${PATCH_VERSION})
 endif()
 
-project(editor
+project(matrix
         VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         LANGUAGES CXX)
 
@@ -21,7 +21,7 @@ add_subdirectory(src)
 
 include(InstallRequiredSystemLibraries)
 
-set(CPACK_PACKAGE_NAME "editor")
+set(CPACK_PACKAGE_NAME "matrix")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "otus")
