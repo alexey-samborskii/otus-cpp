@@ -11,13 +11,8 @@ class MatrixIterator
 public:
     using index_type        = int;
     using stored_value_type = T;
-    using storage_type      = MatrixStorage<T, DefaultValue>;
-    using inner_iterator    = typename storage_type::const_iterator;
-    using iterator_category = std::forward_iterator_tag;
+    using inner_iterator    = typename MatrixStorage<T, DefaultValue>::const_iterator;
     using value_type        = std::tuple<index_type, index_type, stored_value_type>;
-    using difference_type   = std::ptrdiff_t;
-    using pointer           = void;
-    using reference         = value_type;
 
     explicit MatrixIterator(inner_iterator it)
         : it_(it)
@@ -26,10 +21,9 @@ public:
 
     value_type operator*() const
     {
-        return {
-            it_->first.first,
-            it_->first.second,
-            it_->second};
+        return {it_->first.first,
+                it_->first.second,
+                it_->second};
     }
 
     MatrixIterator& operator++()

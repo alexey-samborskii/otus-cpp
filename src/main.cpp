@@ -37,9 +37,9 @@ void printOccupiedCells(const Matrix<T, DefaultValue>& matrix)
 {
     std::cout << "\nmatrix.size()==(" << matrix.size() << ")\n\n";
     std::cout << "cells:\n";
-    for (const auto& cell : matrix)
+    for (const auto& [key, value] : matrix)
     {
-        const auto [x, y, value] = cell;
+        const auto& [x, y] = key;
         std::cout << "    [" << x << ',' << y << "]=(" << value << ")\n";
     }
 }
@@ -67,10 +67,10 @@ void runSelfTest()
     assert(matrix[100][100] == 217);
     assert(matrix.size() == 1);
 
-    for (auto c : matrix)
+    for (const auto& [key, value] : matrix)
     {
-        const auto [x, y, v] = c;
-        std::cout << x << y << v << std::endl;
+        const auto& [x, y] = key;
+        std::cout << x << ' ' << y << ' ' << value << '\n';
     }
 
     std::cout << "self-test:\n";
