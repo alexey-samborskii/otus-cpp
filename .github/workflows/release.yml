@@ -9,11 +9,12 @@ on:
       - feature/allocatoor
       - feature/sfinae
       - feature/editor
-      - feature/matrix      
+      - feature/matrix
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,15 +24,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            cmake \
+            g++ \
             libgtest-dev \
             doxygen \
             graphviz
 
       - name: Configure CMake
         run: |
-          cmake . \
+          cmake -S . -B build \
             -DPATCH_VERSION=${{ github.run_number }} \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=ON
 
       - name: Build
         run: cmake --build build
@@ -40,7 +44,7 @@ jobs:
         run: ctest --test-dir build --output-on-failure
 
       - name: Create package
-        run: cmake --build . --target package
+        run: cmake --build build --target package
 
       - name: Generate Doxygen documentation
         run: doxygen Doxyfile
@@ -61,11 +65,12 @@ jobs:
           release_name: Release ${{ github.run_number }}
           draft: false
           prerelease: false
+
       - name: Find deb package
         id: find_deb
-        run: echo "DEB_FILE=$(ls *.deb | head -n 1)" >> $GITHUB_OUTPUT
+        run: echo "DEB_FILE=$(find build -name '*.deb' | head -n 1)" >> $GITHUB_OUTPUT
+
       - name: Upload Release Asset
-        id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
