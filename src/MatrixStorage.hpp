@@ -34,6 +34,7 @@ public:
         }
         data_[key] = value;
     }
+
     std::size_t size() const
     {
         return data_.size();
