@@ -34,7 +34,6 @@ public:
         }
         data_[key] = value;
     }
-
     std::size_t size() const
     {
         return data_.size();
@@ -42,10 +41,20 @@ public:
 
     const_iterator begin() const
     {
-        return data_.cbegin();
+        return cbegin();
     }
 
     const_iterator end() const
+    {
+        return cend();
+    }
+
+    const_iterator cbegin() const
+    {
+        return data_.cbegin();
+    }
+
+    const_iterator cend() const
     {
         return data_.cend();
     }
