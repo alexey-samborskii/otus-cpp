@@ -12,23 +12,28 @@ project(bulk
         VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         LANGUAGES CXX)
 
-enable_testing()
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(FetchContent)
-
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-
-FetchContent_MakeAvailable(googletest)
+include(CTest)
 
 add_subdirectory(src)
-add_subdirectory(tests)
+
+if(BUILD_TESTING)
+  include(FetchContent)
+
+  set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+
+  FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+  )
+
+  FetchContent_MakeAvailable(googletest)
+
+  add_subdirectory(tests)
+endif()
 
 include(InstallRequiredSystemLibraries)
 

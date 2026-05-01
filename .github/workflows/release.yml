@@ -11,6 +11,7 @@ on:
       - feature/editor
       - feature/matrix
       - feature/bulk
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,25 +27,38 @@ jobs:
           sudo apt-get install -y \
             cmake \
             g++ \
-            libgtest-dev \
             doxygen \
             graphviz
 
-      - name: Configure CMake
+      - name: Configure CMake with tests
         run: |
           cmake -S . -B build \
             -DPATCH_VERSION=${{ github.run_number }} \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=ON
 
-      - name: Build
+      - name: Build with tests
         run: cmake --build build
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
 
-      - name: Create package
-        run: cmake --build build --target package
+      - name: Configure CMake for package
+        run: |
+          cmake -S . -B build-package \
+            -DPATCH_VERSION=${{ github.run_number }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=OFF
+
+      - name: Build package
+        run: cmake --build build-package --target package
+
+      - name: Check package does not contain googletest
+        run: |
+          if dpkg-deb -c build-package/*.deb | grep -E "gtest|gmock"; then
+            echo "ERROR: package contains googletest/gmock files"
+            exit 1
+          fi
 
       - name: Generate Doxygen documentation
         run: doxygen Doxyfile
@@ -68,7 +82,10 @@ jobs:
 
       - name: Find deb package
         id: find_deb
-        run: echo "DEB_FILE=$(find build -name '*.deb' | head -n 1)" >> $GITHUB_OUTPUT
+        run: |
+          DEB_FILE=$(find build-package -name '*.deb' | head -n 1)
+          echo "DEB_FILE=${DEB_FILE}" >> $GITHUB_OUTPUT
+          echo "DEB_NAME=$(basename "${DEB_FILE}")" >> $GITHUB_OUTPUT
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
@@ -77,5 +94,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ steps.find_deb.outputs.DEB_FILE }}
-          asset_name: ${{ steps.find_deb.outputs.DEB_FILE }}
+          asset_name: ${{ steps.find_deb.outputs.DEB_NAME }}
           asset_content_type: application/vnd.debian.binary-package

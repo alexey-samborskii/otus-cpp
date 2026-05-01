@@ -1,4 +1,5 @@
 build/
+build-package/
 .vscode/
 html/
 *.log
