@@ -1,63 +1,59 @@
-#include "Matrix.hpp"
+#include "CommandBlockProcessor.hpp"
+#include "CompositeHandler.hpp"
+#include "ConsoleHandler.hpp"
+#include "FileHandler.hpp"
 
-#include <cassert>
+#include <cstdlib>
+#include <exception>
 #include <iostream>
+#include <memory>
+#include <string>
 
 //------------------------------------------------------------------------------
 
-template <typename T, T DefaultValue>
-void printMatrixFragment(
-    const Matrix<T, DefaultValue>& matrix,
-    int                            x_from,
-    int                            x_to,
-    int                            y_from,
-    int                            y_to)
+int main(int argc, char* argv[])
 {
-    std::cout << "matrix "
-              << "[" << x_from << ".." << x_to << "]"
-              << "[" << y_from << ".." << y_to << "]"
-              << ":\n";
-    for (int x = x_from; x <= x_to; ++x)
+    if (argc != 2)
     {
-        std::cout << "  ";
-        for (int y = y_from; y <= y_to; ++y)
+        std::cerr << "Usage: " << argv[0] << " <block_size>\n";
+        return EXIT_FAILURE;
+    }
+
+    const std::string block_size_arg = argv[1];
+
+    if (block_size_arg.empty() ||
+        block_size_arg == "0" ||
+        block_size_arg.find_first_not_of("0123456789") != std::string::npos)
+    {
+        std::cerr << "Invalid block size: " << argv[1] << '\n';
+        return EXIT_FAILURE;
+    }
+
+    const auto block_size = static_cast<std::size_t>(std::stoul(block_size_arg));
+
+    try
+    {
+        bulk::CompositeHandler handler;
+        handler.add(std::make_shared<bulk::ConsoleHandler>());
+        handler.add(std::make_shared<bulk::FileHandler>());
+
+        bulk::CommandBlockProcessor processor(block_size, handler);
+
+        std::string line;
+        while (std::getline(std::cin, line))
         {
-            std::cout << matrix[x][y];
-            if (y != y_to)
-                std::cout << ' ';
+            processor.processLine(std::move(line));
         }
-        std::cout << '\n';
+
+        processor.finish();
     }
-}
-
-//------------------------------------------------------------------------------
-
-template <typename T, T DefaultValue>
-void printOccupiedCells(const Matrix<T, DefaultValue>& matrix)
-{
-    std::cout << "\nmatrix.size()==(" << matrix.size() << ")\n\n";
-    std::cout << "cells:\n";
-    for (const auto& [key, value] : matrix)
+    catch (const std::exception& e)
     {
-        const auto& [x, y] = key;
-        std::cout << "    [" << x << ',' << y << "]=(" << value << ")\n";
+        std::cerr << "Error: " << e.what() << '\n';
+        return EXIT_FAILURE;
     }
-}
 
-//------------------------------------------------------------------------------
-
-int main()
-{
-    Matrix<int, 0> matrix;
-    for (int i = 0; i < 10; ++i)
-    {
-        matrix[i][i]     = i;
-        matrix[i][9 - i] = 9 - i;
-    }
-    printMatrixFragment(matrix, 1, 8, 1, 8);
-    printOccupiedCells(matrix);
-
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

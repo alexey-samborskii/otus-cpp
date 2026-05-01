@@ -8,7 +8,7 @@ if(DEFINED PATCH_VERSION)
   set(PROJECT_VERSION_PATCH ${PATCH_VERSION})
 endif()
 
-project(matrix
+project(bulk
         VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         LANGUAGES CXX)
 
@@ -22,6 +22,7 @@ include(FetchContent)
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
 FetchContent_MakeAvailable(googletest)
@@ -31,7 +32,7 @@ add_subdirectory(tests)
 
 include(InstallRequiredSystemLibraries)
 
-set(CPACK_PACKAGE_NAME "matrix")
+set(CPACK_PACKAGE_NAME "bulk")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "otus")

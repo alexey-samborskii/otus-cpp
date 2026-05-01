@@ -1,12 +1,23 @@
-add_executable(matrix
-    main.cpp
+add_library(bulk_lib
+    Formatter.cpp
+    CommandBlockProcessor.cpp
+    CompositeHandler.cpp
+    ConsoleHandler.cpp
+    FileHandler.cpp
 )
 
-target_include_directories(matrix
-    PRIVATE 
+target_include_directories(bulk_lib
+    PUBLIC
         ${PROJECT_SOURCE_DIR}/src
 )
 
-install(TARGETS matrix RUNTIME DESTINATION bin)
+add_executable(bulk
+    main.cpp
+)
 
+target_link_libraries(bulk
+    PRIVATE
+        bulk_lib
+)
 
+install(TARGETS bulk RUNTIME DESTINATION bin)

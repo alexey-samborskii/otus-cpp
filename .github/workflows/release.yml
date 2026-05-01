@@ -10,7 +10,7 @@ on:
       - feature/sfinae
       - feature/editor
       - feature/matrix
-
+      - feature/bulk
 jobs:
   build:
     runs-on: ubuntu-latest

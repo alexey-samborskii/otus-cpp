@@ -1,0 +1,58 @@
+@startuml
+left to right direction
+
+class CommandBlock {
+    +std::time_t timestamp
+    +std::vector<std::string> commands
+}
+
+interface ICommandBlockHandler {
+    +handle(const CommandBlock& block)
+}
+
+class CompositeHandler {
+    -std::vector<std::shared_ptr<ICommandBlockHandler>> handlers_
+    +add(std::shared_ptr<ICommandBlockHandler> handler)
+    +handle(const CommandBlock& block)
+}
+
+class ConsoleHandler {
+    +handle(const CommandBlock& block)
+}
+
+class FileHandler {
+    -std::string output_dir_
+    +FileHandler(std::string output_dir = ".")
+    +handle(const CommandBlock& block)
+}
+
+class CommandBlockProcessor {
+    -std::size_t block_size_
+    -ICommandBlockHandler& handler_
+    -Clock clock_
+    -std::size_t dynamic_depth_
+    -CommandBlock current_block_comand_
+    +processLine(std::string line)
+    +finish()
+    -isDynamicBlockActive() bool
+    -addCommand(std::string command)
+    -flush()
+    -clear()
+}
+
+class Formatter {
+    +format(const CommandBlock& block) std::string
+    +write(std::ostream& out, const CommandBlock& block)
+}
+
+ICommandBlockHandler <|.. CompositeHandler
+ICommandBlockHandler <|.. ConsoleHandler
+ICommandBlockHandler <|.. FileHandler
+
+CompositeHandler o-- ICommandBlockHandler
+CommandBlockProcessor --> ICommandBlockHandler
+CommandBlockProcessor --> CommandBlock
+Formatter --> CommandBlock
+ConsoleHandler --> Formatter
+FileHandler --> Formatter
+@enduml
