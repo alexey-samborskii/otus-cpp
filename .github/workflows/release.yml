@@ -11,6 +11,7 @@ on:
       - feature/editor
       - feature/matrix
       - feature/bulk
+      - feature/boost
 
 jobs:
   build:

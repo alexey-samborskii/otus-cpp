@@ -1,0 +1,126 @@
+@startuml Bayan_Class_Diagram
+
+title Bayan — структура классов
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+package "app" {
+    class main {
+        +int main(int argc, char* argv[])
+    }
+}
+
+package "bayan_core" {
+
+    enum HashAlgorithm {
+        Crc32
+        Md5
+    }
+
+    class Config {
+        +scan_dirs: vector<path>
+        +exclude_dirs: vector<path>
+        +masks: vector<string>
+        +min_size: uintmax_t
+        +block_size: size_t
+        +depth: int
+        +hash_algorithm: HashAlgorithm
+    }
+
+    class FileInfo {
+        +path: path
+        +size: uintmax_t
+    }
+
+    class OptionsParser {
+        +Config parse(int argc, char* argv[]) const
+    }
+
+    class FileScanner {
+        -config_: Config
+
+        +FileScanner(Config config)
+        +vector<FileInfo> scan() const
+
+        -void collectFromDirectory(path directory, vector<FileInfo>& files) const
+        -bool isExcluded(path path) const
+        -bool matchesMasks(path path) const
+    }
+
+    class Hasher {
+        -algorithm_: HashAlgorithm
+
+        +Hasher(HashAlgorithm algorithm)
+        +string hashBlock(vector<char> block) const
+
+        -string crc32Hash(char* data, size_t size) const
+        -string md5Hash(char* data, size_t size) const
+    }
+
+    class BlockReader {
+        -file_: FileInfo
+        -block_size_: size_t
+        -total_blocks_: size_t
+        -hasher_: Hasher
+        -stream_: ifstream
+        -hashes_: vector<string>
+
+        +BlockReader(FileInfo file, size_t block_size, Hasher hasher)
+        +optional<string> getBlockHash(size_t block_index)
+
+        -bool readNextBlock()
+    }
+
+    class DuplicateFinder {
+        -config_: Config
+
+        +DuplicateFinder(Config config)
+        +vector<FileGroup> find(vector<FileInfo> files) const
+
+        -map<uintmax_t, FileGroup> groupBySize(vector<FileInfo> files) const
+        -vector<FileGroup> findDuplicatesInSameSizeGroup(
+            FileGroup source_group,
+            uintmax_t file_size,
+            vector<BlockReader>& readers
+        ) const
+    }
+
+    class OutputPrinter {
+        +void print(vector<FileInfo> files, vector<FileGroup> groups) const
+    }
+
+    class FileGroup <<typedef>> {
+        vector<FileIndex>
+    }
+
+    class FileIndex <<typedef>> {
+        size_t
+    }
+}
+
+main ..> OptionsParser : parse args
+main ..> FileScanner : scan files
+main ..> DuplicateFinder : find duplicates
+main ..> OutputPrinter : print result
+
+OptionsParser ..> Config : creates
+FileScanner o-- Config : uses
+DuplicateFinder o-- Config : uses
+
+FileScanner ..> FileInfo : returns
+DuplicateFinder ..> FileInfo : analyzes
+DuplicateFinder ..> BlockReader : creates
+DuplicateFinder ..> FileGroup : returns
+
+BlockReader o-- FileInfo : reads
+BlockReader o-- Hasher : hashes blocks
+Hasher o-- HashAlgorithm : uses
+
+OutputPrinter ..> FileInfo : prints paths
+OutputPrinter ..> FileGroup : prints groups
+
+Config o-- HashAlgorithm
+
+@enduml

@@ -8,7 +8,7 @@ if(DEFINED PATCH_VERSION)
   set(PROJECT_VERSION_PATCH ${PATCH_VERSION})
 endif()
 
-project(bulk
+project(bayan
         VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         LANGUAGES CXX)
 
@@ -17,7 +17,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(CTest)
 
-add_subdirectory(src)
+add_subdirectory(bayan_core)
+
+add_subdirectory(app)
 
 if(BUILD_TESTING)
   include(FetchContent)
@@ -37,7 +39,7 @@ endif()
 
 include(InstallRequiredSystemLibraries)
 
-set(CPACK_PACKAGE_NAME "bulk")
+set(CPACK_PACKAGE_NAME "bayan")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "otus")

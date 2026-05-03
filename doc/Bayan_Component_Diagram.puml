@@ -1,0 +1,44 @@
+@startuml Bayan_Component_Diagram
+
+title Bayan — структура проекта
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+package "bayan" {
+
+    component "app" as app {
+        [bayan executable] as bayan_app
+        [main.cpp] as main_cpp
+    }
+
+    component "bayan_core\nstatic library" as bayan_core {
+        [OptionsParser]
+        [FileScanner]
+        [Hasher]
+        [BlockReader]
+        [DuplicateFinder]
+        [OutputPrinter]
+    }
+
+    component "tests" as tests_component {
+        [bayan_tests] as bayan_tests
+    }
+
+    component "Boost" as boost {
+        [filesystem] as boost_filesystem
+        [program_options] as boost_program_options
+        [system] as boost_system
+    }
+
+    bayan_app --> main_cpp
+    main_cpp --> bayan_core
+
+    bayan_tests --> bayan_core
+
+    bayan_core --> boost_filesystem
+    bayan_core --> boost_program_options
+    bayan_core --> boost_system
+}
+
+@enduml

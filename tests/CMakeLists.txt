@@ -1,12 +1,13 @@
-add_executable(bulk_tests
-    BulkProcessorTests.cpp
+add_executable(bayan_tests
+    DuplicateFinderTests.cpp
 )
 
-target_link_libraries(bulk_tests
+target_link_libraries(bayan_tests
     PRIVATE
-        bulk_lib
+        bayan_core
         GTest::gtest_main
 )
 
 include(GoogleTest)
-gtest_discover_tests(bulk_tests)
+
+gtest_discover_tests(bayan_tests)
