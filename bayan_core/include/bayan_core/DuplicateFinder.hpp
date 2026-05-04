@@ -23,7 +23,7 @@ private:
     std::map<std::uintmax_t, FileGroup> groupBySize(
         const std::vector<FileInfo>& files) const;
 
-    std::vector<FileGroup> findDuplicatesInSameSizeGroup(
+    std::vector<FileGroup> findDuplicatesByContent(
         const FileGroup&          source_group,
         std::uintmax_t            file_size,
         std::vector<BlockReader>& readers) const;

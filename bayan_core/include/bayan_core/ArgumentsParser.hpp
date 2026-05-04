@@ -7,7 +7,7 @@ namespace bayan
 
 //------------------------------------------------------------------------------
 
-class OptionsParser
+class ArgumentsParser
 {
 public:
     Config parse(int argc, char* argv[]) const;

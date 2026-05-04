@@ -254,3 +254,5 @@ TEST(FileScannerTests, AppliesMaskAndExcludeDirectory)
     EXPECT_TRUE(scanned_paths.count(canonicalString(excluded_file)) == 0);
     EXPECT_TRUE(scanned_paths.count(canonicalString(wrong_mask)) == 0);
 }
+
+//------------------------------------------------------------------------------

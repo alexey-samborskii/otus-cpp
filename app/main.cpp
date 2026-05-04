@@ -1,6 +1,6 @@
 #include "bayan_core/DuplicateFinder.hpp"
 #include "bayan_core/FileScanner.hpp"
-#include "bayan_core/OptionsParser.hpp"
+#include "bayan_core/ArgumentsParser.hpp"
 #include "bayan_core/OutputPrinter.hpp"
 
 #include <exception>
@@ -14,8 +14,8 @@ int main(int argc, char* argv[])
     {
         using namespace bayan;
 
-        const OptionsParser options_parser;
-        const auto          config = options_parser.parse(argc, argv);
+        const ArgumentsParser args_parser;
+        const auto            config = args_parser.parse(argc, argv);
 
         const FileScanner file_scanner(config);
         const auto        files = file_scanner.scan();

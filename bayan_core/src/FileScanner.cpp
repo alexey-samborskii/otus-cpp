@@ -200,12 +200,11 @@ void FileScanner::collectFromDirectory(const fs::path&        directory,
 
 bool FileScanner::isExcluded(const fs::path& path) const
 {
-    return std::any_of(
-        config_.exclude_dirs.begin(),
-        config_.exclude_dirs.end(),
-        [&path](const fs::path& exclude_dir) {
-            return isSameOrChildPath(path, exclude_dir);
-        });
+    return std::any_of(config_.exclude_dirs.begin(),
+                       config_.exclude_dirs.end(),
+                       [&path](const fs::path& exclude_dir) {
+                           return isSameOrChildPath(path, exclude_dir);
+                       });
 }
 
 //------------------------------------------------------------------------------
@@ -219,12 +218,11 @@ bool FileScanner::matchesMasks(const fs::path& path) const
 
     const auto filename = path.filename().string();
 
-    return std::any_of(
-        config_.masks.begin(),
-        config_.masks.end(),
-        [&filename](const std::string& mask) {
-            return wildcardMatch(filename, mask);
-        });
+    return std::any_of(config_.masks.begin(),
+                       config_.masks.end(),
+                       [&filename](const std::string& mask) {
+                           return wildcardMatch(filename, mask);
+                       });
 }
 
 //------------------------------------------------------------------------------

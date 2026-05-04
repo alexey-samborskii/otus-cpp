@@ -5,7 +5,7 @@ endif()
 find_package(Boost REQUIRED COMPONENTS filesystem program_options system)
 
 add_library(bayan_core STATIC
-    src/OptionsParser.cpp
+    src/ArgumentsParser.cpp
     src/FileScanner.cpp
     src/Hasher.cpp
     src/BlockReader.cpp
