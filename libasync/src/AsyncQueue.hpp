@@ -21,7 +21,7 @@ public:
 
     void push(T value)
     {
-        std::unique_lock<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mux_);
 
         if (closed_)
         {
@@ -32,18 +32,18 @@ public:
 
         lock.unlock();
 
-        condition_.notify_one();
+        cv_.notify_one();
     }
 
     bool pop(T& value)
     {
-        std::unique_lock<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mux_);
 
-        condition_.wait(lock, [this] {
+        cv_.wait(lock, [this] {
             return closed_ || !queue_.empty();
         });
 
-        if (queue_.empty())
+        if (closed_ && queue_.empty())
         {
             return false;
         }
@@ -56,16 +56,15 @@ public:
 
     void close()
     {
-        std::unique_lock<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mux_);
         closed_ = true;
         lock.unlock();
-
-        condition_.notify_all();
+        cv_.notify_all();
     }
 
 private:
-    std::mutex              mutex_;
-    std::condition_variable condition_;
+    std::mutex              mux_;
+    std::condition_variable cv_;
     std::queue<T>           queue_;
     bool                    closed_ = false;
 };
