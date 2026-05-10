@@ -3,6 +3,7 @@ find_package(Threads REQUIRED)
 add_library(async SHARED
     src/async.cpp
     src/AsyncContext.cpp
+    src/AsyncCommandBlockDispatcher.cpp
     src/CommandBlockProcessor.cpp
     src/CompositeHandler.cpp
     src/ConsoleHandler.cpp
