@@ -17,7 +17,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(CTest)
 
-add_subdirectory(src)
+add_subdirectory(libasync)
+
+add_subdirectory(app)
 
 if(BUILD_TESTING)
   include(FetchContent)
@@ -35,9 +37,11 @@ if(BUILD_TESTING)
   add_subdirectory(tests)
 endif()
 
+include(GNUInstallDirs)
 include(InstallRequiredSystemLibraries)
 
-set(CPACK_PACKAGE_NAME "bulk")
+set(CPACK_PACKAGE_NAME "async")
+set(CPACK_DEBIAN_PACKAGE_NAME "async")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "otus")

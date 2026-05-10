@@ -1,5 +1,6 @@
-#include "Formatter.hpp"
+#include "CommandBlock.hpp"
 #include "CommandBlockProcessor.hpp"
+#include "Formatter.hpp"
 #include "ICommandBlockHandler.hpp"
 
 #include <gtest/gtest.h>
@@ -14,9 +15,9 @@ namespace
 class CollectingBulkHandler : public bulk::ICommandBlockHandler
 {
 public:
-    void handle(const bulk::CommandBlock& bulk) override
+    void handle(const bulk::CommandBlock& command_block) override
     {
-        bulks.push_back(bulk);
+        bulks.push_back(command_block);
     }
 
     std::vector<bulk::CommandBlock> bulks;
@@ -24,13 +25,14 @@ public:
 
 //------------------------------------------------------------------------------
 
-std::vector<std::string> formatBulks(const std::vector<bulk::CommandBlock>& bulks)
+std::vector<std::string> formatBulks(
+    const std::vector<bulk::CommandBlock>& bulks)
 {
     std::vector<std::string> result;
 
-    for (const auto& bulk : bulks)
+    for (const auto& command_block : bulks)
     {
-        result.push_back(bulk::Formatter::format(bulk));
+        result.push_back(bulk::Formatter::format(command_block));
     }
 
     return result;
@@ -71,8 +73,8 @@ TEST(CommandBlockProcessor, StaticBlocksFromTaskExample)
 
     ASSERT_EQ(2u, handler.bulks.size());
 
-    EXPECT_EQ(100, handler.bulks[0].timestamp);
-    EXPECT_EQ(200, handler.bulks[1].timestamp);
+    EXPECT_EQ(static_cast<std::time_t>(100), handler.bulks[0].timestamp);
+    EXPECT_EQ(static_cast<std::time_t>(200), handler.bulks[1].timestamp);
 }
 
 //------------------------------------------------------------------------------
@@ -132,9 +134,9 @@ TEST(CommandBlockProcessor, DynamicBlocksFromTaskExample)
 
     ASSERT_EQ(3u, handler.bulks.size());
 
-    EXPECT_EQ(100, handler.bulks[0].timestamp);
-    EXPECT_EQ(200, handler.bulks[1].timestamp);
-    EXPECT_EQ(300, handler.bulks[2].timestamp);
+    EXPECT_EQ(static_cast<std::time_t>(100), handler.bulks[0].timestamp);
+    EXPECT_EQ(static_cast<std::time_t>(200), handler.bulks[1].timestamp);
+    EXPECT_EQ(static_cast<std::time_t>(300), handler.bulks[2].timestamp);
 }
 
 //------------------------------------------------------------------------------
@@ -197,12 +199,12 @@ TEST(CommandBlockProcessor, UnclosedDynamicBlockIsIgnoredOnFinish)
 
 TEST(Formatter, FormatsBulk)
 {
-    bulk::CommandBlock test_bulk;
-    test_bulk.timestamp = 100;
-    test_bulk.commands  = {"cmd1", "cmd2", "cmd3"};
+    bulk::CommandBlock command_block;
+    command_block.timestamp = 100;
+    command_block.commands  = {"cmd1", "cmd2", "cmd3"};
 
     EXPECT_EQ("bulk: cmd1, cmd2, cmd3",
-              bulk::Formatter::format(test_bulk));
+              bulk::Formatter::format(command_block));
 }
 
 } // namespace

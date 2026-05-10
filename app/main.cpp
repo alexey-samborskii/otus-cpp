@@ -1,12 +1,8 @@
-#include "CommandBlockProcessor.hpp"
-#include "CompositeHandler.hpp"
-#include "ConsoleHandler.hpp"
-#include "FileHandler.hpp"
+#include "async.h"
 
 #include <cstdlib>
 #include <exception>
 #include <iostream>
-#include <memory>
 #include <string>
 
 //------------------------------------------------------------------------------
@@ -29,23 +25,20 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    const auto block_size = static_cast<std::size_t>(std::stoul(block_size_arg));
-
     try
     {
-        bulk::CompositeHandler handler;
-        handler.add(std::make_shared<bulk::ConsoleHandler>());
-        handler.add(std::make_shared<bulk::FileHandler>());
+        const auto block_size = static_cast<std::size_t>(std::stoul(block_size_arg));
 
-        bulk::CommandBlockProcessor processor(block_size, handler);
+        auto handle = async::connect(block_size);
 
         std::string line;
         while (std::getline(std::cin, line))
         {
-            processor.processLine(std::move(line));
+            line += '\n';
+            async::receive(handle, line.data(), line.size());
         }
 
-        processor.finish();
+        async::disconnect(handle);
     }
     catch (const std::exception& e)
     {
