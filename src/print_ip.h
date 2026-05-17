@@ -98,20 +98,18 @@ struct all_same<std::tuple<T, U, Rest...>>
 {
 };
 
-template <typename Tuple, std::size_t... I>
-void print_tuple_impl(const Tuple& t, std::index_sequence<I...>)
-{
-    ((std::cout << (I ? "." : "") << std::get<I>(t)), ...);
-    std::cout << std::endl;
-}
-
 template <typename T>
 typename std::enable_if<
-    std::tuple_size<T>::value != 0 &&
-    all_same<T>::value>::type
+    std::tuple_size<T>::value != 0 && all_same<T>::value>::type
 print_ip(const T& t)
 {
-    print_tuple_impl(t, std::make_index_sequence<std::tuple_size<T>::value>{});
+    std::apply(
+        [](const auto&... args) {
+            std::size_t i = 0;
+            ((std::cout << (i++ ? "." : "") << args), ...);
+            std::cout << std::endl;
+        },
+        t);
 }
 
 //------------------------------------------------------------------------------
