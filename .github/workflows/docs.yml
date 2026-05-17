@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - master
-      - feature/editor
-
+      - feature/sfinae      
+s
 permissions:
   contents: read
   pages: write
