@@ -5,7 +5,7 @@ on:
     branches:
       - master
       - feature/sfinae      
-s
+
 permissions:
   contents: read
   pages: write
