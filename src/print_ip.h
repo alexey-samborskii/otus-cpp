@@ -4,24 +4,33 @@
 #include <list>
 #include <tuple>
 #include <string>
+#include <string_view>
 
 //
 // --- INTEGER TYPE ---
 //
 //------------------------------------------------------------------------------
 
-template <typename T>
-typename std::enable_if<std::is_integral<T>::value>::type
-print_ip(T value)
+template <typename T,
+          typename = std::enable_if_t<std::is_integral<T>::value>>
+void print_ip(T value)
 {
-    const std::size_t size = sizeof(T);
+    using Unsigned = std::make_unsigned_t<T>;
+
+    const auto        unsigned_value = static_cast<Unsigned>(value);
+    const std::size_t size           = sizeof(T);
 
     for (std::size_t i = 0; i < size; ++i)
     {
-        std::cout << ((value >> ((size - 1 - i) * 8)) & 0xFF);
+        const auto shift = (size - 1 - i) * 8;
+        const auto byte  = (unsigned_value >> shift) & 0xFF;
+
+        std::cout << byte;
 
         if (i + 1 != size)
+        {
             std::cout << ".";
+        }
     }
 
     std::cout << std::endl;
@@ -31,7 +40,6 @@ print_ip(T value)
 // --- STRING ---
 //
 //------------------------------------------------------------------------------
-
 template <typename T>
 using is_string_like = std::disjunction<
     std::is_same<T, std::string>,
@@ -40,9 +48,9 @@ using is_string_like = std::disjunction<
     std::is_same<T, char*>,
     std::is_same<T, const char[]>>;
 
-template <typename T>
-typename std::enable_if<is_string_like<std::decay_t<T>>::value>::type
-print_ip(const T& value)
+template <typename T,
+          typename = std::enable_if_t<is_string_like<std::decay_t<T>>::value>>
+void print_ip(const T& value)
 {
     std::cout << value << std::endl;
 }
@@ -52,24 +60,8 @@ print_ip(const T& value)
 //
 //------------------------------------------------------------------------------
 
-template <typename T>
-struct is_container : std::false_type
-{
-};
-
-template <typename... Args>
-struct is_container<std::vector<Args...>> : std::true_type
-{
-};
-
-template <typename... Args>
-struct is_container<std::list<Args...>> : std::true_type
-{
-};
-
-template <typename T>
-typename std::enable_if<is_container<T>::value>::type
-print_ip(const T& container)
+template <typename Container>
+void print_container_ip(const Container& container)
 {
     auto it = container.begin();
 
@@ -79,10 +71,24 @@ print_ip(const T& container)
         ++it;
 
         if (it != container.end())
+        {
             std::cout << ".";
+        }
     }
 
     std::cout << std::endl;
+}
+
+template <typename T, typename Allocator>
+void print_ip(const std::vector<T, Allocator>& container)
+{
+    print_container_ip(container);
+}
+
+template <typename T, typename Allocator>
+void print_ip(const std::list<T, Allocator>& container)
+{
+    print_container_ip(container);
 }
 
 //
@@ -90,26 +96,11 @@ print_ip(const T& container)
 //
 //------------------------------------------------------------------------------
 
-template <typename T>
-struct all_same;
-
-template <typename T>
-struct all_same<std::tuple<T>> : std::true_type
-{
-};
-
-template <typename T, typename U, typename... Rest>
-struct all_same<std::tuple<T, U, Rest...>>
-    : std::integral_constant<bool,
-                             std::is_same<T, U>::value &&
-                                 all_same<std::tuple<U, Rest...>>::value>
-{
-};
-
-template <typename T>
-typename std::enable_if<
-    std::tuple_size<T>::value != 0 && all_same<T>::value>::type
-print_ip(const T& t)
+template <typename T,
+          typename... Rest,
+          typename = std::enable_if_t<std::conjunction<
+              std::is_same<T, Rest>...>::value>>
+void print_ip(const std::tuple<T, Rest...>& t)
 {
     std::apply(
         [](const auto&... args) {
