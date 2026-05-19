@@ -33,7 +33,15 @@ print_ip(T value)
 //------------------------------------------------------------------------------
 
 template <typename T>
-typename std::enable_if<std::is_same<T, std::string>::value>::type
+using is_string_like = std::disjunction<
+    std::is_same<T, std::string>,
+    std::is_same<T, std::string_view>,
+    std::is_same<T, const char*>,
+    std::is_same<T, char*>,
+    std::is_same<T, const char[]>>;
+
+template <typename T>
+typename std::enable_if<is_string_like<std::decay_t<T>>::value>::type
 print_ip(const T& value)
 {
     std::cout << value << std::endl;
