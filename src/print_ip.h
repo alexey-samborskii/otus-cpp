@@ -25,7 +25,7 @@ void print_ip(T value)
         const auto shift = (size - 1 - i) * 8;
         const auto byte  = (unsigned_value >> shift) & 0xFF;
 
-        std::cout << byte;
+        std::cout << static_cast<unsigned>(byte);
 
         if (i + 1 != size)
         {
