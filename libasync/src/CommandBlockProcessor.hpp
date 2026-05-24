@@ -24,12 +24,13 @@ public:
 
     void processLine(std::string line);
     void finish();
-
+    void flush();
+    
 private:
     bool isDynamicBlockActive() const;
 
     void addCommand(std::string command);
-    void flush();
+
     void clear();
 
 private:

@@ -29,6 +29,20 @@ void receive(handle_t handle, const char* data, std::size_t size)
 
 //------------------------------------------------------------------------------
 
+void flush(handle_t handle)
+{
+    if (handle == nullptr)
+    {
+        return;
+    }
+
+    auto* context = static_cast<::bulk::AsyncContext*>(handle);
+
+    context->flush();
+}
+
+//------------------------------------------------------------------------------
+
 void disconnect(handle_t handle)
 {
     if (handle == nullptr)

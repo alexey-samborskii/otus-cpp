@@ -52,6 +52,13 @@ void AsyncContext::receive(const char* data, std::size_t size)
 
 //------------------------------------------------------------------------------
 
+void AsyncContext::flush()
+{
+    processor_.flush();
+}
+
+//------------------------------------------------------------------------------
+
 void AsyncContext::disconnect()
 {
     {

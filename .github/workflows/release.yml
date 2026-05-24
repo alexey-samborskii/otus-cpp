@@ -12,6 +12,7 @@ on:
       - feature/matrix
       - feature/bulk
       - feature/async_command_processor
+      - feature/async-bulk-server
 jobs:
   build:
     runs-on: ubuntu-latest

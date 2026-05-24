@@ -22,6 +22,7 @@ public:
     AsyncContext& operator=(const AsyncContext&) = delete;
 
     void receive(const char* data, std::size_t size);
+    void flush();
     void disconnect();
 
 private:
