@@ -17,8 +17,8 @@ bool parsePort(const char* value, unsigned short& port)
 {
     try
     {
-        std::size_t pos = 0;
-        const auto parsed = std::stoul(value, &pos);
+        std::size_t pos    = 0;
+        const auto  parsed = std::stoul(value, &pos);
 
         if (value[pos] != '\0' ||
             parsed == 0 ||
@@ -42,8 +42,8 @@ bool parseBulkSize(const char* value, std::size_t& bulk_size)
 {
     try
     {
-        std::size_t pos = 0;
-        const auto parsed = std::stoul(value, &pos);
+        std::size_t pos    = 0;
+        const auto  parsed = std::stoul(value, &pos);
 
         if (value[pos] != '\0' || parsed == 0)
         {
@@ -71,8 +71,8 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    unsigned short port = 0;
-    std::size_t bulk_size = 0;
+    unsigned short port      = 0;
+    std::size_t    bulk_size = 0;
 
     if (!parsePort(argv[1], port))
     {

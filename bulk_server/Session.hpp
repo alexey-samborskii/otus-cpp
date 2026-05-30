@@ -17,13 +17,10 @@ class Server;
 class Session : public std::enable_shared_from_this<Session>
 {
 public:
-    Session(
-        boost::asio::ip::tcp::socket socket,
-        Server&                      server);
-
+    Session(boost::asio::ip::tcp::socket socket, Server& server);
     ~Session();
 
-    Session(const Session&) = delete;
+    Session(const Session&)            = delete;
     Session& operator=(const Session&) = delete;
 
     void start();
@@ -37,10 +34,10 @@ private:
     void deliverDynamicLine(const std::string& line);
     void stop();
 
-    Tcp::socket             socket_;
-    Server&                 server_;
-    std::array<char, 4096>  buffer_;
-    std::string             pending_line_;
+    Tcp::socket            socket_;
+    Server&                server_;
+    std::array<char, 4096> buffer_;
+    std::string            pending_line_;
 
     async::handle_t dynamic_handle_;
 

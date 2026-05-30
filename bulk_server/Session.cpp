@@ -43,8 +43,7 @@ void Session::doRead()
 
     socket_.async_read_some(
         boost::asio::buffer(buffer_),
-        [this, self](const boost::system::error_code& error,
-                     std::size_t                      length) {
+        [this, self](const boost::system::error_code& error, std::size_t length) {
             if (!error)
             {
                 processData(length);
@@ -161,9 +160,7 @@ void Session::stop()
     }
 
     boost::system::error_code ignored_error;
-    socket_.shutdown(
-        boost::asio::ip::tcp::socket::shutdown_both,
-        ignored_error);
+    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_error);
     socket_.close(ignored_error);
 
     server_.onSessionClosed();

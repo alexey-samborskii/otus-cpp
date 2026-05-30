@@ -10,13 +10,11 @@
 
 //------------------------------------------------------------------------------
 
-Server::Server(
-    boost::asio::io_context& io_context,
-    unsigned short           port,
-    std::size_t              bulk_size)
-    : acceptor_(
-          io_context,
-          Tcp::endpoint(Tcp::v4(), port))
+Server::Server(boost::asio::io_context& io_context,
+               unsigned short           port,
+               std::size_t              bulk_size)
+    : acceptor_(io_context,
+                Tcp::endpoint(Tcp::v4(), port))
     , bulk_size_(bulk_size)
     , static_handle_(async::connect(bulk_size_))
     , active_sessions_(0)
@@ -101,11 +99,7 @@ void Server::doAccept()
             if (!error)
             {
                 ++active_sessions_;
-
-                std::make_shared<Session>(
-                    std::move(socket),
-                    *this)
-                    ->start();
+                std::make_shared<Session>(std::move(socket), *this)->start();
             }
             else
             {
