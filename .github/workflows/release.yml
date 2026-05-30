@@ -13,6 +13,7 @@ on:
       - feature/bulk
       - feature/async_command_processor
       - feature/async-bulk-server
+      - feature/join_server
 jobs:
   build:
     runs-on: ubuntu-latest

@@ -1,3 +1,4 @@
+#include "Database.hpp"
 #include "Server.hpp"
 
 #include <boost/asio.hpp>
@@ -7,6 +8,8 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <thread>
+#include <vector>
 
 //------------------------------------------------------------------------------
 
@@ -38,25 +41,16 @@ bool parsePort(const char* value, unsigned short& port)
 
 //------------------------------------------------------------------------------
 
-bool parseBulkSize(const char* value, std::size_t& bulk_size)
+std::size_t getThreadCount()
 {
-    try
-    {
-        std::size_t pos    = 0;
-        const auto  parsed = std::stoul(value, &pos);
+    const auto hardware_threads = std::thread::hardware_concurrency();
 
-        if (value[pos] != '\0' || parsed == 0)
-        {
-            return false;
-        }
-
-        bulk_size = static_cast<std::size_t>(parsed);
-        return true;
-    }
-    catch (...)
+    if (hardware_threads == 0)
     {
-        return false;
+        return 2;
     }
+
+    return hardware_threads;
 }
 
 } // namespace
@@ -65,14 +59,13 @@ bool parseBulkSize(const char* value, std::size_t& bulk_size)
 
 int main(int argc, char* argv[])
 {
-    if (argc != 3)
+    if (argc != 2)
     {
-        std::cerr << "Usage: " << argv[0] << " <port> <bulk_size>\n";
+        std::cerr << "Usage: " << argv[0] << " <port>\n";
         return EXIT_FAILURE;
     }
 
-    unsigned short port      = 0;
-    std::size_t    bulk_size = 0;
+    unsigned short port = 0;
 
     if (!parsePort(argv[1], port))
     {
@@ -80,19 +73,28 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    if (!parseBulkSize(argv[2], bulk_size))
-    {
-        std::cerr << "Invalid bulk size: " << argv[2] << '\n';
-        return EXIT_FAILURE;
-    }
-
     try
     {
+        auto                    database = std::make_shared<Database>();
         boost::asio::io_context io_context;
+        Server                  server(io_context, port, database);
 
-        Server server(io_context, port, bulk_size);
+        const auto               kThreadCount = getThreadCount();
+        std::vector<std::thread> threads;
 
-        io_context.run();
+        threads.reserve(kThreadCount);
+
+        for (std::size_t i = 0; i < kThreadCount; ++i)
+        {
+            threads.emplace_back([&io_context]() {
+                io_context.run();
+            });
+        }
+
+        for (auto& thread : threads)
+        {
+            thread.join();
+        }
     }
     catch (const std::exception& e)
     {
