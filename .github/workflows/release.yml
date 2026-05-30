@@ -29,7 +29,8 @@ jobs:
             cmake \
             g++ \
             doxygen \
-            graphviz
+            graphviz \
+            libboost-system-dev
 
       - name: Configure CMake with tests
         run: |
