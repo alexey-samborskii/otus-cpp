@@ -72,3 +72,15 @@ install(
         reducer_variance
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+install(
+    PROGRAMS
+        ${CMAKE_SOURCE_DIR}/test/run_locally.sh
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(
+    FILES
+        ${CMAKE_SOURCE_DIR}/input/AB_NYC_2019.csv
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/input
+)

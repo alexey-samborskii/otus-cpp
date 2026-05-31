@@ -103,7 +103,8 @@ int main(int argc, char** argv)
             continue;
         }
 
-        std::cout << "price" << '\t' << price << '\t' << price * price << '\t' << 1 << '\n';
+        std::cout << "price" << '\t' << price 
+        << '\t' << price * price << '\t' << 1 << '\n';
     }
 
     return 0;

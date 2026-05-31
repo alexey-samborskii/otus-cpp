@@ -20,7 +20,7 @@ int main(int argc, char** argv)
 
     while (std::cin >> key >> price >> price_squared >> count)
     {
-        sum += price;
+        sum         += price;
         sum_squared += price_squared;
         total_count += count;
     }

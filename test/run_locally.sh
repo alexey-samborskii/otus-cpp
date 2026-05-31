@@ -1,9 +1,15 @@
 #!/bin/sh
 set -eu
 
-BINARY_HOME=./bin
-INPUT_HOME=./input
-INPUT=${INPUT_HOME}/AB_NYC_2019.csv
+PROJECT_NAME=MapReduce
+
+if [ -d "./bin" ] && [ -f "./input/AB_NYC_2019.csv" ]; then
+    BINARY_HOME=./bin
+    INPUT=./input/AB_NYC_2019.csv
+else
+    BINARY_HOME=/usr/bin
+    INPUT=/usr/share/${PROJECT_NAME}/input/AB_NYC_2019.csv
+fi
 
 ${BINARY_HOME}/mapper_mean < ${INPUT} \
     | sort -k1,1 \
