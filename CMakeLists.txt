@@ -8,7 +8,7 @@ if(DEFINED PATCH_VERSION)
   set(PROJECT_VERSION_PATCH ${PATCH_VERSION})
 endif()
 
-project(join_server
+project(MapReduce
         VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         LANGUAGES CXX)
 
@@ -38,8 +38,8 @@ add_subdirectory(src)
 include(GNUInstallDirs)
 include(InstallRequiredSystemLibraries)
 
-set(CPACK_PACKAGE_NAME "join_server")
-set(CPACK_DEBIAN_PACKAGE_NAME "join_server")
+set(CPACK_PACKAGE_NAME "mapreduce")
+set(CPACK_DEBIAN_PACKAGE_NAME "mapreduce")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "otus")

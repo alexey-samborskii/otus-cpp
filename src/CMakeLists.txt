@@ -1,21 +1,8 @@
-if(POLICY CMP0167)
-    cmake_policy(SET CMP0167 NEW)
-endif()
+add_executable(mapreduce MapReduce.cpp)
 
-find_package(Boost CONFIG REQUIRED COMPONENTS system)
-
-file(GLOB SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-
-add_executable(join_server
-    ${SOURCES}
-)
-
-target_link_libraries(join_server
-    PRIVATE
-        Boost::system
-)
-
-install(
-    TARGETS join_server
-    RUNTIME DESTINATION bin
-)
+set_target_properties(
+        mapreduce
+        PROPERTIES 
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        )
