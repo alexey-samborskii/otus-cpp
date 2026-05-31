@@ -17,6 +17,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #include(CTest)
 
+include(GNUInstallDirs)
+
 add_subdirectory(src)
 
 #if(BUILD_TESTING)
@@ -35,7 +37,7 @@ add_subdirectory(src)
 #  add_subdirectory(tests)
 #endif()
 
-include(GNUInstallDirs)
+
 include(InstallRequiredSystemLibraries)
 
 set(CPACK_PACKAGE_NAME "mapreduce")
