@@ -8,19 +8,19 @@ if(DEFINED PATCH_VERSION)
   set(PROJECT_VERSION_PATCH ${PATCH_VERSION})
 endif()
 
-project(MapReduce
+project(fashion_mnist_inference
         VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-#include(CTest)
-
 include(GNUInstallDirs)
 
 add_subdirectory(src)
 
+#include(CTest)
+#
 #if(BUILD_TESTING)
 #  include(FetchContent)
 #
@@ -37,11 +37,10 @@ add_subdirectory(src)
 #  add_subdirectory(tests)
 #endif()
 
-
 include(InstallRequiredSystemLibraries)
 
-set(CPACK_PACKAGE_NAME "mapreduce")
-set(CPACK_DEBIAN_PACKAGE_NAME "mapreduce")
+set(CPACK_PACKAGE_NAME "fashion_mnist_inference")
+set(CPACK_DEBIAN_PACKAGE_NAME "fashion_mnist_inference")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "otus")

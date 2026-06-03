@@ -15,6 +15,7 @@ on:
       - feature/async-bulk-server
       - feature/join_server
       - feature/Mapreduce
+      - feature/homework-13-computer-vision
 jobs:
   build:
     runs-on: ubuntu-latest
