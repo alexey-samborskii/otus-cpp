@@ -16,6 +16,7 @@ on:
       - feature/join_server
       - feature/Mapreduce
       - feature/homework-13-computer-vision
+      - feature/homework-14-project-work
 jobs:
   build:
     runs-on: ubuntu-latest
