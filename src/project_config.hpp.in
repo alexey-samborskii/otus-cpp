@@ -1,0 +1,3 @@
+#pragma once
+
+#define PROJECT_INSTALL_DATA_DIR "@PROJECT_INSTALL_DATA_DIR@"

@@ -1,3 +1,5 @@
+#include "resolve_input_path.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdlib>
@@ -41,9 +43,18 @@ void replaceSeparators(std::string &text)
 {
     for (char &ch : text)
     {
-        if (ch == ',' || ch == ';' || ch == '\t' || ch == '\r' || ch == '\n')
+        switch (ch)
         {
+        case ',':
+        case ';':
+        case '\t':
+        case '\r':
+        case '\n':
             ch = ' ';
+            break;
+
+        default:
+            break;
         }
     }
 }
@@ -188,14 +199,6 @@ double calculateAccuracy(
     return static_cast<double>(correct_count) / static_cast<double>(total_count);
 }
 
-//------------------------------------------------------------------------------
-
-void printUsage(const char *program_name)
-{
-    std::cerr << "Usage:\n"
-              << "  " << program_name << " <test.csv> <logreg_coef.txt>\n";
-}
-
 } // namespace
 
 //------------------------------------------------------------------------------
@@ -206,19 +209,21 @@ int main(int argc, char *argv[])
     {
         if (argc != 3)
         {
-            printUsage(argv[0]);
+            std::cerr << "Usage:\n"
+                      << "  " << argv[0] << " <test.csv> <logreg_coef.txt>\n";
+
             return 1;
         }
 
-        const std::string test_file_name  = argv[1];
-        const std::string model_file_name = argv[2];
+        const std::string test_file_name = resolveInputPath(argv[1]);
 
-        const Model model = readLogregModel(model_file_name);
+        const std::string model_file_name = resolveInputPath(argv[2]);
 
-        const double accuracy = calculateAccuracy(test_file_name, model);
+        const auto model = readLogregModel(model_file_name);
 
-        std::cout << std::fixed << std::setprecision(6)
-                  << accuracy << std::endl;
+        const auto accuracy = calculateAccuracy(test_file_name, model);
+
+        std::cout << std::fixed << std::setprecision(6) << accuracy << std::endl;
 
         return 0;
     }
@@ -227,4 +232,8 @@ int main(int argc, char *argv[])
         std::cerr << "Error: " << ex.what() << std::endl;
         return 1;
     }
+
+    return 0;
 }
+
+//------------------------------------------------------------------------------
