@@ -15,8 +15,10 @@ project(fashion_mnist_inference
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(GNUInstallDirs)
+set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install prefix" FORCE)
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
 
+include(GNUInstallDirs)
 add_subdirectory(src)
 
 #include(CTest)
