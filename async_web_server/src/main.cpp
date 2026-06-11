@@ -15,16 +15,13 @@
 #include <thread>
 #include <vector>
 
-namespace net = boost::asio;
-namespace ssl = boost::asio::ssl;
-
 namespace
 {
 
 enum class ServerProtocol
 {
-    kHttp,
-    kHttps
+    kHttp  = 0,
+    kHttps = 1
 };
 
 //------------------------------------------------------------------------------
@@ -177,11 +174,11 @@ ProgramOptions parseArguments(int argc, char **argv)
 //------------------------------------------------------------------------------
 
 void runServer(
-    net::io_context   &io_context,
-    server::WebServer &web_server,
-    std::size_t        threads)
+    boost::asio::io_context &io_context,
+    server::WebServer       &web_server,
+    std::size_t              threads)
 {
-    net::signal_set signals(
+    boost::asio::signal_set signals(
         io_context,
         SIGINT,
         SIGTERM);
@@ -195,10 +192,10 @@ void runServer(
             web_server.stop();
         });
 
-    net::co_spawn(
+    boost::asio::co_spawn(
         io_context,
         web_server.acceptLoop(),
-        net::detached);
+        boost::asio::detached);
 
     std::vector<std::thread> workers;
 
@@ -230,7 +227,7 @@ int main(int argc, char **argv)
             argc,
             argv);
 
-        const auto address = net::ip::make_address(options.host);
+        const auto address = boost::asio::ip::make_address(options.host);
 
         std::cout << "[server] protocol: "
                   << toString(options.protocol)
@@ -246,12 +243,12 @@ int main(int argc, char **argv)
                   << options.public_dir
                   << '\n';
 
+        boost::asio::io_context io_context;
+
         switch (options.protocol)
         {
         case ServerProtocol::kHttp:
         {
-            net::io_context io_context;
-
             server::HttpWebServer web_server(
                 io_context,
                 {address, options.port},
@@ -267,9 +264,8 @@ int main(int argc, char **argv)
 
         case ServerProtocol::kHttps:
         {
-            net::io_context io_context;
-
-            ssl::context ssl_context(ssl::context::tls_server);
+            boost::asio::ssl::context ssl_context(
+                boost::asio::ssl::context::tls_server);
 
             server::configureServerSslContext(
                 ssl_context,
