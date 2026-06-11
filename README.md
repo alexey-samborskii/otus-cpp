@@ -51,38 +51,53 @@ cmake --version
 ## Структура проекта
 
 ```text
-async_web_server/
-├── include/server/
-│   ├── WebServer.hpp
-│   ├── HttpWebServer.hpp
-│   ├── HttpsWebServer.hpp
-│   ├── HttpSession.hpp
-│   ├── HttpsSession.hpp
-│   ├── HttpRequest.hpp
-│   ├── HttpResponse.hpp
-│   ├── HttpRequestHandler.hpp
-│   ├── Router.hpp
-│   ├── StaticFileHandler.hpp
-│   └── SslContext.hpp
-│
-├── src/
-│   ├── main.cpp
-│   ├── HttpWebServer.cpp
-│   ├── HttpsWebServer.cpp
-│   ├── HttpSession.cpp
-│   ├── HttpsSession.cpp
-│   ├── HttpRequest.cpp
-│   ├── HttpResponse.cpp
-│   ├── HttpRequestHandler.cpp
-│   ├── Router.cpp
-│   ├── StaticFileHandler.cpp
-│   └── SslContext.cpp
-│
-├── public/
-│   ├── index.html
-│   └── style.css
-│
-└── CMakeLists.txt
+.
+├── async_web_server
+│   ├── app
+│   │   └── main.cpp
+│   ├── CMakeLists.txt
+│   ├── include
+│   │   └── server
+│   │       ├── HttpRequestHandler.hpp
+│   │       ├── HttpRequest.hpp
+│   │       ├── HttpResponse.hpp
+│   │       ├── HttpSession.hpp
+│   │       ├── HttpsSession.hpp
+│   │       ├── HttpsWebServer.hpp
+│   │       ├── HttpWebServer.hpp
+│   │       ├── Router.hpp
+│   │       ├── SslContext.hpp
+│   │       ├── StaticFileHandler.hpp
+│   │       └── WebServer.hpp
+│   ├── public
+│   │   ├── index.html
+│   │   └── static
+│   │       └── style.css
+│   └── src
+│       └── server
+│           ├── HttpRequest.cpp
+│           ├── HttpRequestHandler.cpp
+│           ├── HttpResponse.cpp
+│           ├── HttpSession.cpp
+│           ├── HttpsSession.cpp
+│           ├── HttpsWebServer.cpp
+│           ├── HttpWebServer.cpp
+│           ├── Router.cpp
+│           ├── SslContext.cpp
+│           └── StaticFileHandler.cpp
+├── certs
+│   ├── server.crt
+│   └── server.key
+├── CMakeLists.txt
+├── doc
+│   └── async_web_server_structure.drawio
+├── Doxyfile
+├── README.md
+└── tests
+    ├── CMakeLists.txt
+    ├── HttpRequestHandlerTests.cpp
+    ├── HttpResponseTests.cpp
+    └── RouterTests.cpp
 ```
 
 ---
