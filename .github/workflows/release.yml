@@ -34,7 +34,8 @@ jobs:
             g++ \
             doxygen \
             graphviz \
-            libboost-system-dev
+            libboost-system-dev \
+            libssl-dev
 
       - name: Configure CMake with tests
         run: |
