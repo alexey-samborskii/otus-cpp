@@ -3,16 +3,16 @@ find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 
 add_library(async_web_server_lib
-  src/HttpRequest.cpp
-  src/HttpRequestHandler.cpp
-  src/HttpResponse.cpp
-  src/HttpSession.cpp
-  src/HttpWebServer.cpp
-  src/HttpsSession.cpp
-  src/HttpsWebServer.cpp
-  src/Router.cpp
-  src/SslContext.cpp
-  src/StaticFileHandler.cpp
+  src/server/HttpRequest.cpp
+  src/server/HttpRequestHandler.cpp
+  src/server/HttpResponse.cpp
+  src/server/HttpSession.cpp
+  src/server/HttpWebServer.cpp
+  src/server/HttpsSession.cpp
+  src/server/HttpsWebServer.cpp
+  src/server/Router.cpp
+  src/server/SslContext.cpp
+  src/server/StaticFileHandler.cpp
 )
 
 target_include_directories(async_web_server_lib
@@ -34,7 +34,7 @@ target_compile_features(async_web_server_lib
 )
 
 add_executable(async_web_server
-  src/main.cpp
+  app/main.cpp
 )
 
 target_link_libraries(async_web_server
