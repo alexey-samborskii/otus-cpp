@@ -1,0 +1,420 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.3.6 Chrome/140.0.7339.249 Electron/38.8.0 Safari/537.36" compressed="false" version="29.3.6" pages="2">
+  <diagram id="overview-page" name="Обзор архитектуры">
+    <mxGraphModel dx="2175" dy="2650" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1350" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="o-title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;strokeColor=none;fillColor=none;" value="Архитектура async_task_web_server" vertex="1">
+          <mxGeometry height="50" width="1300" x="440" y="-240" as="geometry" />
+        </mxCell>
+        <mxCell id="o-app-pkg" parent="1" style="swimlane;startSize=38;horizontal=1;rounded=1;arcSize=8;html=1;whiteSpace=wrap;collapsible=0;fontStyle=1;fontSize=17;strokeWidth=2;spacingLeft=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="app — исполняемое приложение" vertex="1">
+          <mxGeometry height="520" width="1910" x="320" y="-170" as="geometry" />
+        </mxCell>
+        <mxCell id="o-api" parent="o-app-pkg" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;TaskApiHandler&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;HTTP CRUD ↔ TaskService&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="330" x="800" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="o-app-handler" parent="o-app-pkg" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;ApplicationRequestHandler&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;маршрутизация /api и static&lt;/div&gt;" vertex="1">
+          <mxGeometry height="155" width="670" x="460" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="oe9" edge="1" parent="o-app-pkg" source="o-app-handler" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" target="o-api" value="/api/*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="o-options" parent="o-app-pkg" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;ProgramOptions&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;host, port, threads, TLS, paths&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="190" x="1670" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="o-server-pkg" parent="1" style="swimlane;startSize=38;horizontal=1;rounded=1;arcSize=8;html=1;whiteSpace=wrap;collapsible=0;fontStyle=1;fontSize=17;strokeWidth=2;spacingLeft=10;fillColor=#d5e8d4;strokeColor=#82b366;" value="async_web_server — статическая библиотека" vertex="1">
+          <mxGeometry height="720" width="1040" x="80" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="o-request-handler" parent="o-server-pkg" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;HttpRequestHandler&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;асинхронный интерфейс handle()&lt;/div&gt;" vertex="1">
+          <mxGeometry height="110" width="170" x="680" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="o-task-pkg" parent="1" style="swimlane;startSize=38;horizontal=1;rounded=1;arcSize=8;html=1;whiteSpace=wrap;collapsible=0;fontStyle=1;fontSize=17;strokeWidth=2;spacingLeft=10;fillColor=#ffe6cc;strokeColor=#d79b00;" value="task_system — статическая библиотека" vertex="1">
+          <mxGeometry height="720" width="1040" x="1160" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="o-asio" parent="o-task-pkg" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;Boost.Asio&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;io_context, strand, timers&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="160" x="850" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="o-domain" parent="o-task-pkg" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;Task / TaskInput / TaskStatus&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;доменная модель&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="330" x="520" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="o-scheduler" parent="o-task-pkg" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;TaskScheduler&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;strand + system_timer&lt;/div&gt;" vertex="1">
+          <mxGeometry height="110" width="440" x="520" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="oe14" edge="1" parent="o-task-pkg" source="o-scheduler" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;strokeColor=#555555;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-asio" value="strand + timers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oe16" edge="1" parent="o-task-pkg" source="o-scheduler" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-domain" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="o-sqlite" parent="o-task-pkg" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;SQLite&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;data/tasks.db&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="230" x="70" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="o-main" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;main.cpp&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;создаёт и связывает компоненты&lt;/div&gt;" vertex="1">
+          <mxGeometry height="380" width="300" x="380" y="-110" as="geometry" />
+        </mxCell>
+        <mxCell id="o-browser" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;Browser&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;HTML + CSS + JavaScript&lt;/div&gt;" vertex="1">
+          <mxGeometry height="110" width="180" x="60" y="-105" as="geometry" />
+        </mxCell>
+        <mxCell id="o-webserver" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;WebServer&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;HTTP / HTTPS accept loop&lt;/div&gt;" vertex="1">
+          <mxGeometry height="110" width="330" x="390" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="o-sessions" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;HttpSession / HttpsSession&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;coroutine на соединение&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="330" x="390" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="o-static" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;StaticFileHandler&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;public/index.html, CSS, JS&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="190" x="880" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="o-http-model" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;HttpRequest / HttpResponse&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;внутренняя HTTP-модель&lt;/div&gt;" vertex="1">
+          <mxGeometry height="110" width="680" x="390" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="o-service" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;TaskService&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;валидация и бизнес-операции&lt;/div&gt;" vertex="1">
+          <mxGeometry height="110" width="330" x="1220" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="o-repo" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;TaskRepository&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;SQLite CRUD + mutex&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="330" x="1220" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="oe1" edge="1" parent="1" source="o-browser" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;strokeColor=#555555;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-webserver" value="HTTPS / HTTP">
+          <mxGeometry relative="1" x="-0.1852" y="-25" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="510" y="-40" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oe2" edge="1" parent="1" source="o-main" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-webserver" value="создаёт">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oe3" edge="1" parent="1" source="o-main" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;elbow=vertical;" target="o-app-handler" value="создаёт">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oe4" edge="1" parent="1" source="o-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-service" value="связывает">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="565" y="320" />
+              <mxPoint x="1290" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oe5" edge="1" parent="1" source="o-webserver" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-sessions" value="создаёт 0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oe6" edge="1" parent="1" source="o-sessions" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" target="o-request-handler" value="shared_ptr">
+          <mxGeometry relative="1" x="0.6863" y="5" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oe7" edge="1" parent="1" source="o-request-handler" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=0;strokeColor=#333333;strokeWidth=2;labelBackgroundColor=#ffffff;" target="o-app-handler" value="реализуется">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="840" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oe8" edge="1" parent="1" source="o-app-handler" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=1;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" target="o-static" value="static routes">
+          <mxGeometry relative="1" x="0.7922" y="-5" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="oe10" edge="1" parent="1" source="o-api" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;strokeColor=#555555;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-service" value="вызывает">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oe11" edge="1" parent="1" source="o-service" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;strokeColor=#555555;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-repo" value="CRUD">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oe12" edge="1" parent="1" source="o-service" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;strokeColor=#555555;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-scheduler" value="schedule / cancel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oe13" edge="1" parent="1" source="o-repo" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;strokeColor=#555555;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-sqlite" value="SQL">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oe15" edge="1" parent="1" source="o-repo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-domain" value="stores">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oe17" edge="1" parent="1" source="o-sessions" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="o-http-model" value="read / write">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="oe18" edge="1" parent="1" source="o-static" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" target="o-http-model" value="handle()">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="o-legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" value="&lt;b&gt;Обозначения&lt;/b&gt;&lt;br&gt;△ наследование / реализация&lt;br&gt;◇ shared ownership / aggregation&lt;br&gt;◆ владение по значению / composition&lt;br&gt;пунктир — создание или зависимость" vertex="1">
+          <mxGeometry height="130" width="700" x="80" y="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="o-note" parent="1" style="shape=note;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" value="&lt;b&gt;Ключевой поток запроса&lt;/b&gt;&lt;br&gt;Browser → WebServer → Session coroutine → ApplicationRequestHandler → StaticFileHandler или TaskApiHandler → TaskService" vertex="1">
+          <mxGeometry height="130" width="1300" x="820" y="1150" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="classes-page" name="Полная диаграмма классов">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2450" math="0" shadow="0" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="d-title" value="Полная диаграмма классов проекта" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="700" y="15" width="1600" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="d-app-pkg" value="application / app" style="swimlane;startSize=38;horizontal=1;rounded=1;arcSize=8;html=1;whiteSpace=wrap;collapsible=0;fontStyle=1;fontSize=17;strokeWidth=2;spacingLeft=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="2920" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="d-server-pkg" value="server — libasync_web_server.a" style="swimlane;startSize=38;horizontal=1;rounded=1;arcSize=8;html=1;whiteSpace=wrap;collapsible=0;fontStyle=1;fontSize=17;strokeWidth=2;spacingLeft=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="1640" height="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="d-task-pkg" value="tasks — libtask_system.a" style="swimlane;startSize=38;horizontal=1;rounded=1;arcSize=8;html=1;whiteSpace=wrap;collapsible=0;fontStyle=1;fontSize=17;strokeWidth=2;spacingLeft=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1720" y="540" width="1240" height="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="d-ext-pkg" value="Внешние зависимости и ресурсы" style="swimlane;startSize=38;horizontal=1;rounded=1;arcSize=8;html=1;whiteSpace=wrap;collapsible=0;fontStyle=1;fontSize=17;strokeWidth=2;spacingLeft=10;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="2110" width="2920" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="d-main" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;module&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;main.cpp&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;ProgramOptions options&lt;/div&gt;&lt;div&gt;io_context&lt;/div&gt;&lt;div&gt;signal_set&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;parseProgramOptions()&lt;/div&gt;&lt;div&gt;createWebServer()&lt;/div&gt;&lt;div&gt;setupSignalHandling()&lt;/div&gt;&lt;div&gt;restoreScheduledTasks()&lt;/div&gt;&lt;div&gt;runServer()&lt;/div&gt;&lt;div&gt;main()&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px dashed #bbbbbb;margin:6px 0&quot;&gt;&lt;div style=&quot;color:#666666;font-style:italic&quot;&gt;Композиционный корень приложения&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="90" y="145" width="480" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="d-options" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;struct&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;ProgramOptions&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;ServerProtocol protocol&lt;/div&gt;&lt;div&gt;std::string host&lt;/div&gt;&lt;div&gt;uint16_t port&lt;/div&gt;&lt;div&gt;size_t threads&lt;/div&gt;&lt;div&gt;path public_dir&lt;/div&gt;&lt;div&gt;path database_file&lt;/div&gt;&lt;div&gt;path certificate_file&lt;/div&gt;&lt;div&gt;path private_key_file&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="610" y="145" width="370" height="275" as="geometry" />
+        </mxCell>
+        <mxCell id="d-app-handler" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;final class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;ApplicationRequestHandler&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;StaticFileHandler static_file_handler_&lt;/div&gt;&lt;div&gt;shared_ptr&amp;lt;TaskApiHandler&amp;gt; task_api_handler_&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;ApplicationRequestHandler(...)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;HttpResponse&amp;gt; handle(HttpRequest) override&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="140" width="520" height="275" as="geometry" />
+        </mxCell>
+        <mxCell id="d-api-handler" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;TaskApiHandler&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;shared_ptr&amp;lt;TaskService&amp;gt; service_&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;TaskApiHandler(shared_ptr&amp;lt;TaskService&amp;gt;)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;HttpResponse&amp;gt; handle(HttpRequest) const&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1580" y="145" width="430" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="d-route" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;internal struct&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;ParsedRoute&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;Type type&lt;/div&gt;&lt;div&gt;optional&amp;lt;TaskId&amp;gt; id&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;parseRoute(target)&lt;/div&gt;&lt;div&gt;parseTaskId(value)&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px dashed #bbbbbb;margin:6px 0&quot;&gt;&lt;div style=&quot;color:#666666;font-style:italic&quot;&gt;Реализация TaskApiHandler.cpp&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="2050" y="145" width="390" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="d-protocol" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;enum class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;ServerProtocol&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;kHttp = 0&lt;/div&gt;&lt;div&gt;kHttps = 1&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="2480" y="145" width="220" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="d-webserver" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;abstract class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;WebServer&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;+ virtual ~WebServer()&lt;/div&gt;&lt;div&gt;+ virtual awaitable&amp;lt;void&amp;gt; acceptLoop() = 0&lt;/div&gt;&lt;div&gt;+ virtual void stop() = 0&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="610" y="610" width="430" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="d-http-server" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;final class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;HttpWebServer&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;tcp::acceptor acceptor_&lt;/div&gt;&lt;div&gt;shared_ptr&amp;lt;HttpRequestHandler&amp;gt; request_handler_&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;HttpWebServer(io_context, endpoint, handler)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;void&amp;gt; acceptLoop() override&lt;/div&gt;&lt;div&gt;+ void stop() override&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="100" y="850" width="500" height="275" as="geometry" />
+        </mxCell>
+        <mxCell id="d-https-server" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;final class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;HttpsWebServer&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;tcp::acceptor acceptor_&lt;/div&gt;&lt;div&gt;shared_ptr&amp;lt;ssl::context&amp;gt; ssl_context_&lt;/div&gt;&lt;div&gt;shared_ptr&amp;lt;HttpRequestHandler&amp;gt; request_handler_&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;HttpsWebServer(io_context, endpoint, ssl_context, handler)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;void&amp;gt; acceptLoop() override&lt;/div&gt;&lt;div&gt;+ void stop() override&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="650" y="850" width="530" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="d-http-handler" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;abstract class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;HttpRequestHandler&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;+ virtual ~HttpRequestHandler()&lt;/div&gt;&lt;div&gt;+ virtual awaitable&amp;lt;HttpResponse&amp;gt; handle(HttpRequest) = 0&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="850" width="400" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="d-http-session" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;HttpSession&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;tcp::socket socket_&lt;/div&gt;&lt;div&gt;flat_buffer buffer_&lt;/div&gt;&lt;div&gt;shared_ptr&amp;lt;HttpRequestHandler&amp;gt; request_handler_&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;HttpSession(socket, handler)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;void&amp;gt; run()&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1190" width="500" height="265" as="geometry" />
+        </mxCell>
+        <mxCell id="d-https-session" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;HttpsSession&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;shared_ptr&amp;lt;ssl::context&amp;gt; ssl_context_&lt;/div&gt;&lt;div&gt;ssl_stream&amp;lt;tcp::socket&amp;gt; stream_&lt;/div&gt;&lt;div&gt;flat_buffer buffer_&lt;/div&gt;&lt;div&gt;shared_ptr&amp;lt;HttpRequestHandler&amp;gt; request_handler_&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;HttpsSession(socket, ssl_context, handler)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;void&amp;gt; run()&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="650" y="1190" width="540" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="d-static" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;StaticFileHandler&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;path public_dir_&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;StaticFileHandler(path)&lt;/div&gt;&lt;div&gt;+ HttpResponse handle(HttpRequest) const&lt;/div&gt;&lt;div&gt;- contentType(path)&lt;/div&gt;&lt;div&gt;- isValidTarget(target)&lt;/div&gt;&lt;div&gt;- removeQueryString(target)&lt;/div&gt;&lt;div&gt;- makeFilePath(target) const&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="1120" width="410" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="d-request" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;struct&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;HttpRequest&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;std::string method&lt;/div&gt;&lt;div&gt;std::string target&lt;/div&gt;&lt;div&gt;std::string body&lt;/div&gt;&lt;div&gt;std::string content_type&lt;/div&gt;&lt;div&gt;bool keep_alive&lt;/div&gt;&lt;div&gt;unsigned version&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1550" width="410" height="285" as="geometry" />
+        </mxCell>
+        <mxCell id="d-response" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;struct&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;HttpResponse&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;unsigned status&lt;/div&gt;&lt;div&gt;std::string content_type&lt;/div&gt;&lt;div&gt;std::string body&lt;/div&gt;&lt;div&gt;vector&amp;lt;Header&amp;gt; headers&lt;/div&gt;&lt;div&gt;bool keep_alive&lt;/div&gt;&lt;div&gt;unsigned version&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;+ ok(...)&lt;/div&gt;&lt;div&gt;+ created(...)&lt;/div&gt;&lt;div&gt;+ noContent(...)&lt;/div&gt;&lt;div&gt;+ badRequest(...)&lt;/div&gt;&lt;div&gt;+ notFound(...)&lt;/div&gt;&lt;div&gt;+ methodNotAllowed(...)&lt;/div&gt;&lt;div&gt;+ conflict(...)&lt;/div&gt;&lt;div&gt;+ internalServerError(...)&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="560" y="1550" width="560" height="410" as="geometry" />
+        </mxCell>
+        <mxCell id="d-header" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;type alias&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;HttpResponse::Header&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;pair&amp;lt;string, string&amp;gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="1550" width="300" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="d-task-status" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;enum class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;TaskStatus&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;kScheduled = 0&lt;/div&gt;&lt;div&gt;kRunning&lt;/div&gt;&lt;div&gt;kCompleted&lt;/div&gt;&lt;div&gt;kFailed&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1760" y="610" width="330" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="d-task" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;struct&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;Task&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;TaskId id&lt;/div&gt;&lt;div&gt;std::string title&lt;/div&gt;&lt;div&gt;std::string description&lt;/div&gt;&lt;div&gt;int64_t scheduled_at_ms&lt;/div&gt;&lt;div&gt;TaskStatus status&lt;/div&gt;&lt;div&gt;optional&amp;lt;string&amp;gt; error_message&lt;/div&gt;&lt;div&gt;int64_t created_at_ms&lt;/div&gt;&lt;div&gt;int64_t updated_at_ms&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="2130" y="610" width="500" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="d-task-input" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;struct&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;TaskInput&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;std::string title&lt;/div&gt;&lt;div&gt;std::string description&lt;/div&gt;&lt;div&gt;int64_t scheduled_at_ms&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="2670" y="610" width="250" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="d-repository" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;TaskRepository&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;sqlite3* database_&lt;/div&gt;&lt;div&gt;mutable std::mutex mutex_&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;TaskRepository(database_path)&lt;/div&gt;&lt;div&gt;~TaskRepository()&lt;/div&gt;&lt;div&gt;+ Task create(TaskInput)&lt;/div&gt;&lt;div&gt;+ optional&amp;lt;Task&amp;gt; findById(TaskId) const&lt;/div&gt;&lt;div&gt;+ vector&amp;lt;Task&amp;gt; findAll() const&lt;/div&gt;&lt;div&gt;+ vector&amp;lt;Task&amp;gt; findScheduled() const&lt;/div&gt;&lt;div&gt;+ optional&amp;lt;Task&amp;gt; update(TaskId, TaskInput)&lt;/div&gt;&lt;div&gt;+ bool remove(TaskId)&lt;/div&gt;&lt;div&gt;+ bool claimForExecution(TaskId)&lt;/div&gt;&lt;div&gt;+ void setStatus(...)&lt;/div&gt;&lt;div&gt;- createSchema()&lt;/div&gt;&lt;div&gt;- execute(sql) const&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1760" y="1010" width="560" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="d-scheduler" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;TaskScheduler&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;strand&amp;lt;any_io_executor&amp;gt; strand_&lt;/div&gt;&lt;div&gt;TaskRepository&amp;amp; repository_&lt;/div&gt;&lt;div&gt;unordered_map&amp;lt;TaskId, shared_ptr&amp;lt;Timer&amp;gt;&amp;gt; timers_&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;TaskScheduler(executor, repository)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;void&amp;gt; restore()&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;void&amp;gt; schedule(Task)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;void&amp;gt; cancel(TaskId)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;void&amp;gt; runNow(Task)&lt;/div&gt;&lt;div&gt;- scheduleImpl(Task)&lt;/div&gt;&lt;div&gt;- cancelImpl(TaskId)&lt;/div&gt;&lt;div&gt;- awaitable&amp;lt;void&amp;gt; executeTask(TaskId)&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px dashed #bbbbbb;margin:6px 0&quot;&gt;&lt;div style=&quot;color:#666666;font-style:italic&quot;&gt;inherits enable_shared_from_this&amp;lt;TaskScheduler&amp;gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="2360" y="1010" width="560" height="465" as="geometry" />
+        </mxCell>
+        <mxCell id="d-statement" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;internal RAII class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;Statement&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;sqlite3_stmt* statement_&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;Statement(sqlite3*, sql)&lt;/div&gt;&lt;div&gt;~Statement()&lt;/div&gt;&lt;div&gt;+ sqlite3_stmt* get() const&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px dashed #bbbbbb;margin:6px 0&quot;&gt;&lt;div style=&quot;color:#666666;font-style:italic&quot;&gt;TaskRepository.cpp anonymous namespace&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1760" y="1600" width="350" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="d-service" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;TaskService&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;TaskRepository&amp;amp; repository_&lt;/div&gt;&lt;div&gt;shared_ptr&amp;lt;TaskScheduler&amp;gt; scheduler_&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;TaskService(repository, scheduler)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;Task&amp;gt; create(TaskInput)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;Task&amp;gt; findById(TaskId) const&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;vector&amp;lt;Task&amp;gt;&amp;gt; findAll() const&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;Task&amp;gt; update(TaskId, TaskInput)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;void&amp;gt; remove(TaskId)&lt;/div&gt;&lt;div&gt;+ awaitable&amp;lt;Task&amp;gt; runNow(TaskId)&lt;/div&gt;&lt;div&gt;- static void validate(TaskInput)&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="2150" y="1540" width="560" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="d-notfound" value="&lt;div style=&quot;text-align:center;color:#666666;font-size:11px&quot;&gt;&amp;lt;&amp;lt;exception class&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;TaskNotFoundError&lt;/div&gt;&lt;hr style=&quot;border:0;border-top:1px solid #bbbbbb;margin:6px 0&quot;&gt;&lt;div&gt;TaskNotFoundError(message)&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="2750" y="1580" width="190" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="d-io" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;boost::asio::io_context&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;event loop + worker threads&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="100" y="2180" width="420" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="d-ssl" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;boost::asio::ssl::context&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;TLS certificate + private key&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="580" y="2180" width="430" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="d-timer" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;boost::asio::system_timer&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;асинхронное планирование&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="2180" width="420" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="d-sqlite" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;SQLite3&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;tasks.db + WAL&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1550" y="2180" width="330" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="d-public" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;public/&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;index.html + styles.css + app.js&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1940" y="2180" width="410" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="d-runtime" value="&lt;div style=&quot;text-align:center;font-weight:bold;font-size:14px&quot;&gt;std::runtime_error&lt;/div&gt;&lt;div style=&quot;text-align:center;color:#555555;margin-top:6px&quot;&gt;базовый exception&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;strokeWidth=2;shadow=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="2410" y="2180" width="330" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="de1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=0;strokeColor=#333333;strokeWidth=2;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-http-server" target="d-webserver">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=0;strokeColor=#333333;strokeWidth=2;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-https-server" target="d-webserver">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=0;strokeColor=#333333;strokeWidth=2;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-app-handler" target="d-http-handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=0;strokeColor=#333333;strokeWidth=2;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-notfound" target="d-runtime">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de10" value="reads" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-main" target="d-options">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de11" value="creates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-main" target="d-repository">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de12" value="creates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-main" target="d-scheduler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de13" value="creates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-main" target="d-service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de14" value="creates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-main" target="d-api-handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de15" value="creates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-main" target="d-app-handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de16" value="creates HTTP/HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-main" target="d-webserver">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de20" value="creates 0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-http-server" target="d-http-session">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de21" value="creates 0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-https-server" target="d-https-session">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de22" value="shared_ptr" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-http-server" target="d-http-handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de23" value="shared_ptr" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-https-server" target="d-http-handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de24" value="shared_ptr" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-http-session" target="d-http-handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de25" value="shared_ptr" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-https-session" target="d-http-handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de26" value="shared ownership" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-https-server" target="d-ssl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de27" value="keeps alive" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-https-session" target="d-ssl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de28" value="acceptor executor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-http-server" target="d-io">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de29" value="acceptor executor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-https-server" target="d-io">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de30" value="creates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-http-session" target="d-request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de31" value="writes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-http-session" target="d-response">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de32" value="creates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-https-session" target="d-request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de33" value="writes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-https-session" target="d-response">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de34" value="parameter" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-http-handler" target="d-request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de35" value="returns" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-http-handler" target="d-response">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de36" value="handles" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-static" target="d-request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de37" value="returns" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-static" target="d-response">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de38" value="reads files" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;strokeColor=#555555;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-static" target="d-public">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de39" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=1;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-response" target="d-header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de40" value="value member" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=1;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-app-handler" target="d-static">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de41" value="shared_ptr" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-app-handler" target="d-api-handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de42" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-api-handler" target="d-route">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de43" value="shared_ptr" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-api-handler" target="d-service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de44" value="reads" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-api-handler" target="d-request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de45" value="creates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-api-handler" target="d-response">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de50" value="status" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;strokeColor=#555555;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-task" target="d-task-status">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de51" value="persists" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-repository" target="d-task">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de52" value="create/update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-repository" target="d-task-input">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de53" value="owns connection" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=1;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-repository" target="d-sqlite">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de54" value="creates per query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-repository" target="d-statement">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de55" value="sqlite3_stmt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;strokeColor=#555555;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-statement" target="d-sqlite">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de56" value="reference" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;strokeColor=#555555;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-service" target="d-repository">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de57" value="shared_ptr" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=0;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-service" target="d-scheduler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de58" value="returns" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-service" target="d-task">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de59" value="validates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-service" target="d-task-input">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de60" value="throws" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-service" target="d-notfound">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de61" value="reference" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endFill=0;strokeColor=#555555;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-scheduler" target="d-repository">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de62" value="schedules" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-scheduler" target="d-task">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de63" value="owns 0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=diamond;startFill=1;endArrow=none;strokeColor=#333333;strokeWidth=1.7;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-scheduler" target="d-timer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="de64" value="strand executor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=8 4;endArrow=open;endFill=0;strokeColor=#666666;strokeWidth=1.5;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="d-scheduler" target="d-io">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-legend" value="&lt;b&gt;UML-обозначения&lt;/b&gt;&lt;br&gt;△ — наследование / реализация интерфейса&lt;br&gt;◇ — aggregation / shared_ptr&lt;br&gt;◆ — composition / владение&lt;br&gt;→ — association / reference&lt;br&gt;пунктир → — dependency / creates / uses" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="2770" y="2180" width="170" height="150" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

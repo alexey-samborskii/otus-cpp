@@ -1,5 +1,6 @@
 #include "server/HttpWebServer.hpp"
 
+#include "server/HttpRequestHandler.hpp"
 #include "server/HttpSession.hpp"
 
 #include <boost/system/system_error.hpp>
@@ -13,53 +14,39 @@ namespace net = boost::asio;
 namespace server
 {
 
+//------------------------------------------------------------------------------
+
 HttpWebServer::HttpWebServer(
-    net::io_context      &io_context,
-    const tcp::endpoint  &endpoint,
-    std::filesystem::path public_dir)
-    : acceptor_(io_context),
-      public_dir_(std::move(public_dir))
+    net::io_context                    &io_context,
+    const tcp::endpoint                &endpoint,
+    std::shared_ptr<HttpRequestHandler> request_handler)
+    : acceptor_(io_context)
+    , request_handler_(std::move(request_handler))
 {
     boost::system::error_code error;
 
     acceptor_.open(endpoint.protocol(), error);
-
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.open");
+        throw boost::system::system_error(error, "acceptor.open");
     }
 
-    acceptor_.set_option(
-        net::socket_base::reuse_address(true),
-        error);
-
+    acceptor_.set_option(net::socket_base::reuse_address(true), error);
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.set_option");
+        throw boost::system::system_error(error, "acceptor.set_option");
     }
 
     acceptor_.bind(endpoint, error);
-
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.bind");
+        throw boost::system::system_error(error, "acceptor.bind");
     }
 
-    acceptor_.listen(
-        net::socket_base::max_listen_connections,
-        error);
-
+    acceptor_.listen(net::socket_base::max_listen_connections, error);
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.listen");
+        throw boost::system::system_error(error, "acceptor.listen");
     }
 }
 
@@ -76,12 +63,12 @@ net::awaitable<void> HttpWebServer::acceptLoop()
 
             auto session = std::make_shared<HttpSession>(
                 std::move(socket),
-                public_dir_);
+                request_handler_);
 
             net::co_spawn(
                 acceptor_.get_executor(),
-                [session]() {
-                    return session->run();
+                [session]() -> net::awaitable<void> {
+                    co_await session->run();
                 },
                 net::detached);
         }
@@ -104,7 +91,6 @@ net::awaitable<void> HttpWebServer::acceptLoop()
 void HttpWebServer::stop()
 {
     boost::system::error_code error;
-
     acceptor_.close(error);
 }
 

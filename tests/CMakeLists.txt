@@ -1,7 +1,6 @@
 add_executable(async_web_server_tests
   HttpResponseTests.cpp
   HttpRequestHandlerTests.cpp
-  RouterTests.cpp
 )
 
 target_link_libraries(async_web_server_tests

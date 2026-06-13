@@ -3,13 +3,17 @@
 #include "server/HttpRequest.hpp"
 #include "server/HttpResponse.hpp"
 
-#include <filesystem>
+#include <boost/asio/awaitable.hpp>
 
 namespace server
 {
 
-HttpResponse handleHttpRequest(
-    const std::filesystem::path &public_dir,
-    HttpRequest                &&request);
+class HttpRequestHandler
+{
+public:
+    virtual ~HttpRequestHandler() = default;
+
+    virtual boost::asio::awaitable<HttpResponse> handle(HttpRequest request) = 0;
+};
 
 } // namespace server

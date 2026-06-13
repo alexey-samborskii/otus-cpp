@@ -35,7 +35,8 @@ jobs:
             doxygen \
             graphviz \
             libboost-system-dev \
-            libssl-dev
+            libssl-dev \
+            libsqlite3-dev
 
       - name: Configure CMake with tests
         run: |

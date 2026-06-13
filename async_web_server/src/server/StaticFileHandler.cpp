@@ -7,6 +7,8 @@
 
 namespace server
 {
+    
+//------------------------------------------------------------------------------
 
 StaticFileHandler::StaticFileHandler(
     std::filesystem::path public_dir)
@@ -16,13 +18,12 @@ StaticFileHandler::StaticFileHandler(
 
 //------------------------------------------------------------------------------
 
-HttpResponse StaticFileHandler::handle(
-    HttpRequest &&request) const
+HttpResponse StaticFileHandler::handle(HttpRequest request) const
 {
     if (request.method != "GET")
     {
         return HttpResponse::methodNotAllowed(
-            "Method Not Allowed\n",
+            R"({"error":"Method Not Allowed"})",
             request.keep_alive,
             request.version);
     }
@@ -30,31 +31,28 @@ HttpResponse StaticFileHandler::handle(
     if (!isValidTarget(request.target))
     {
         return HttpResponse::badRequest(
-            "Bad Request\n",
+            R"({"error":"Bad Request"})",
             request.keep_alive,
             request.version);
     }
 
-    const std::filesystem::path file_path = makeFilePath(
-        request.target);
+    const std::filesystem::path file_path = makeFilePath(request.target);
 
     if (!std::filesystem::exists(file_path) ||
         !std::filesystem::is_regular_file(file_path))
     {
         return HttpResponse::notFound(
-            "Not Found\n",
+            R"({"error":"Not Found"})",
             request.keep_alive,
             request.version);
     }
 
-    std::ifstream file(
-        file_path,
-        std::ios::binary);
+    std::ifstream file(file_path, std::ios::binary);
 
     if (!file)
     {
         return HttpResponse::internalServerError(
-            "Internal Server Error\n",
+            R"({"error":"Internal Server Error"})",
             request.keep_alive,
             request.version);
     }
@@ -63,38 +61,41 @@ HttpResponse StaticFileHandler::handle(
 
     body << file.rdbuf();
 
-    return HttpResponse::ok(
+    HttpResponse response = HttpResponse::ok(
         body.str(),
         contentType(file_path),
         request.keep_alive,
         request.version);
+
+    response.headers.emplace_back("Cache-Control", "no-cache");
+
+    return response;
 }
 
 //------------------------------------------------------------------------------
 
-std::string StaticFileHandler::contentType(
-    const std::filesystem::path &path)
+std::string StaticFileHandler::contentType(const std::filesystem::path &path)
 {
     const std::string extension = path.extension().string();
 
     if (extension == ".htm" || extension == ".html")
     {
-        return "text/html";
+        return "text/html; charset=utf-8";
     }
 
     if (extension == ".css")
     {
-        return "text/css";
+        return "text/css; charset=utf-8";
     }
 
     if (extension == ".js")
     {
-        return "application/javascript";
+        return "application/javascript; charset=utf-8";
     }
 
     if (extension == ".json")
     {
-        return "application/json";
+        return "application/json; charset=utf-8";
     }
 
     if (extension == ".png")
@@ -119,7 +120,7 @@ std::string StaticFileHandler::contentType(
 
     if (extension == ".txt")
     {
-        return "text/plain";
+        return "text/plain; charset=utf-8";
     }
 
     return "application/octet-stream";
@@ -127,8 +128,7 @@ std::string StaticFileHandler::contentType(
 
 //------------------------------------------------------------------------------
 
-bool StaticFileHandler::isValidTarget(
-    const std::string &target)
+bool StaticFileHandler::isValidTarget(const std::string &target)
 {
     if (target.empty())
     {
@@ -150,8 +150,7 @@ bool StaticFileHandler::isValidTarget(
 
 //------------------------------------------------------------------------------
 
-std::string StaticFileHandler::removeQueryString(
-    std::string target)
+std::string StaticFileHandler::removeQueryString(std::string target)
 {
     const std::string::size_type query_pos = target.find('?');
 
@@ -165,11 +164,9 @@ std::string StaticFileHandler::removeQueryString(
 
 //------------------------------------------------------------------------------
 
-std::filesystem::path StaticFileHandler::makeFilePath(
-    std::string target) const
+std::filesystem::path StaticFileHandler::makeFilePath(std::string target) const
 {
-    target = removeQueryString(
-        std::move(target));
+    target = removeQueryString(std::move(target));
 
     if (target == "/")
     {
@@ -180,5 +177,7 @@ std::filesystem::path StaticFileHandler::makeFilePath(
 
     return (public_dir_ / relative_path).lexically_normal();
 }
+
+//------------------------------------------------------------------------------
 
 } // namespace server

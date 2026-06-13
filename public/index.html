@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Планировщик задач</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+</head>
+<body>
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Boost.Asio · SQLite · HTTPS</p>
+            <h1>Планировщик задач</h1>
+            <p class="subtitle">
+                Создание, изменение и асинхронное выполнение задач.
+            </p>
+        </div>
+
+        <button id="refresh-button" class="button button-secondary" type="button">
+            Обновить
+        </button>
+    </header>
+
+    <main class="layout">
+        <section class="panel editor-panel" aria-labelledby="editor-title">
+            <div class="panel-heading">
+                <div>
+                    <p class="section-label">Редактор</p>
+                    <h2 id="editor-title">Новая задача</h2>
+                </div>
+            </div>
+
+            <form id="task-form">
+                <input id="task-id" type="hidden">
+
+                <label for="task-title">Название</label>
+                <input
+                    id="task-title"
+                    name="title"
+                    type="text"
+                    maxlength="200"
+                    placeholder="Например, сформировать отчёт"
+                    required>
+
+                <label for="task-description">Описание</label>
+                <textarea
+                    id="task-description"
+                    name="description"
+                    rows="5"
+                    maxlength="5000"
+                    placeholder="Что должно произойти при срабатывании задачи"></textarea>
+
+                <label for="task-scheduled-at">Дата и время выполнения</label>
+                <input
+                    id="task-scheduled-at"
+                    name="scheduledAt"
+                    type="datetime-local"
+                    required>
+
+                <div class="form-actions">
+                    <button id="submit-button" class="button button-primary" type="submit">
+                        Создать задачу
+                    </button>
+                    <button id="cancel-edit-button" class="button button-secondary hidden" type="button">
+                        Отменить изменение
+                    </button>
+                </div>
+            </form>
+
+            <p id="form-message" class="message" role="status"></p>
+        </section>
+
+        <section class="panel tasks-panel" aria-labelledby="tasks-title">
+            <div class="panel-heading tasks-heading">
+                <div>
+                    <p class="section-label">Хранилище SQLite</p>
+                    <h2 id="tasks-title">Задачи</h2>
+                </div>
+                <span id="task-count" class="counter">0</span>
+            </div>
+
+            <div id="loading" class="empty-state">Загрузка задач…</div>
+            <div id="empty-state" class="empty-state hidden">
+                Задач пока нет. Создайте первую задачу слева.
+            </div>
+            <div id="tasks-list" class="tasks-list"></div>
+        </section>
+    </main>
+
+    <template id="task-template">
+        <article class="task-card">
+            <div class="task-main">
+                <div class="task-header">
+                    <div>
+                        <p class="task-id"></p>
+                        <h3 class="task-title"></h3>
+                    </div>
+                    <span class="status-badge"></span>
+                </div>
+
+                <p class="task-description"></p>
+
+                <dl class="task-meta">
+                    <div>
+                        <dt>Запланировано</dt>
+                        <dd class="task-scheduled-at"></dd>
+                    </div>
+                    <div>
+                        <dt>Изменено</dt>
+                        <dd class="task-updated-at"></dd>
+                    </div>
+                </dl>
+
+                <p class="task-error hidden"></p>
+            </div>
+
+            <div class="task-actions">
+                <button class="button button-small run-button" type="button">
+                    Выполнить сейчас
+                </button>
+                <button class="button button-small edit-button" type="button">
+                    Изменить
+                </button>
+                <button class="button button-small button-danger delete-button" type="button">
+                    Удалить
+                </button>
+            </div>
+        </article>
+    </template>
+</body>
+</html>

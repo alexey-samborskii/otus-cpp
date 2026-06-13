@@ -1,14 +1,17 @@
 #include "server/HttpSession.hpp"
 
+#include "server/HttpRequest.hpp"
 #include "server/HttpRequestHandler.hpp"
+#include "server/HttpResponse.hpp"
 
 #include <boost/beast/http.hpp>
 #include <boost/system/system_error.hpp>
 
 #include <iostream>
+#include <string>
 #include <utility>
 
-namespace net = boost::asio;
+namespace net  = boost::asio;
 namespace http = boost::beast::http;
 
 namespace server
@@ -17,47 +20,47 @@ namespace server
 namespace
 {
 
-using BeastRequest = http::request<http::string_body>;
+using BeastRequest  = http::request<http::string_body>;
 using BeastResponse = http::response<http::string_body>;
 
 //------------------------------------------------------------------------------
 
-HttpRequest makeHttpRequest(
-    BeastRequest &&request)
+HttpRequest makeHttpRequest(BeastRequest &&request)
 {
     HttpRequest result;
 
-    result.method     = std::string(request.method_string());
-    result.target     = std::string(request.target());
-    result.body       = std::move(request.body());
-    result.keep_alive = request.keep_alive();
-    result.version    = request.version();
+    result.method       = std::string(request.method_string());
+    result.target       = std::string(request.target());
+    result.body         = std::move(request.body());
+    result.content_type = std::string(request[http::field::content_type]);
+    result.keep_alive   = request.keep_alive();
+    result.version      = request.version();
 
     return result;
 }
 
 //------------------------------------------------------------------------------
 
-BeastResponse makeBeastResponse(
-    const HttpResponse &response)
+BeastResponse makeBeastResponse(const HttpResponse &response)
 {
     BeastResponse result{
         static_cast<http::status>(response.status),
         response.version};
 
-    result.set(
-        http::field::server,
-        "async_web_server");
+    result.set(http::field::server, "async_task_web_server");
 
-    result.set(
-        http::field::content_type,
-        response.content_type);
+    if (!response.content_type.empty())
+    {
+        result.set(http::field::content_type, response.content_type);
+    }
 
-    result.keep_alive(
-        response.keep_alive);
+    for (const auto &[name, value] : response.headers)
+    {
+        result.set(name, value);
+    }
 
+    result.keep_alive(response.keep_alive);
     result.body() = response.body;
-
     result.prepare_payload();
 
     return result;
@@ -68,10 +71,10 @@ BeastResponse makeBeastResponse(
 //------------------------------------------------------------------------------
 
 HttpSession::HttpSession(
-    tcp::socket           socket,
-    std::filesystem::path public_dir)
-    : socket_(std::move(socket)),
-      public_dir_(std::move(public_dir))
+    tcp::socket                         socket,
+    std::shared_ptr<HttpRequestHandler> request_handler)
+    : socket_(std::move(socket))
+    , request_handler_(std::move(request_handler))
 {
 }
 
@@ -91,15 +94,12 @@ net::awaitable<void> HttpSession::run()
                 beast_request,
                 net::use_awaitable);
 
-            HttpRequest request = makeHttpRequest(
-                std::move(beast_request));
+            HttpRequest request = makeHttpRequest(std::move(beast_request));
 
-            HttpResponse response = handleHttpRequest(
-                public_dir_,
+            HttpResponse response = co_await request_handler_->handle(
                 std::move(request));
 
-            BeastResponse beast_response = makeBeastResponse(
-                response);
+            BeastResponse beast_response = makeBeastResponse(response);
 
             const bool keep_alive = beast_response.keep_alive();
 
@@ -127,9 +127,7 @@ net::awaitable<void> HttpSession::run()
 
     boost::system::error_code error;
 
-    socket_.shutdown(
-        tcp::socket::shutdown_send,
-        error);
+    socket_.shutdown(tcp::socket::shutdown_send, error);
 
     co_return;
 }

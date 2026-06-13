@@ -1,15 +1,20 @@
 #include "server/HttpsSession.hpp"
 
+#include "server/HttpRequest.hpp"
 #include "server/HttpRequestHandler.hpp"
+#include "server/HttpResponse.hpp"
 
+#include <boost/asio/ssl/error.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/system/system_error.hpp>
 
 #include <iostream>
+#include <stdexcept>
+#include <string>
 #include <utility>
 
-namespace net = boost::asio;
-namespace ssl = boost::asio::ssl;
+namespace net  = boost::asio;
+namespace ssl  = boost::asio::ssl;
 namespace http = boost::beast::http;
 
 namespace server
@@ -18,29 +23,42 @@ namespace server
 namespace
 {
 
-using BeastRequest = http::request<http::string_body>;
+using BeastRequest  = http::request<http::string_body>;
 using BeastResponse = http::response<http::string_body>;
 
 //------------------------------------------------------------------------------
 
-HttpRequest makeHttpRequest(
-    BeastRequest &&request)
+ssl::context &requireSslContext(
+    const HttpsSession::SslContextPtr &ssl_context)
+{
+    if (!ssl_context)
+    {
+        throw std::invalid_argument(
+            "SSL context must not be null");
+    }
+
+    return *ssl_context;
+}
+
+//------------------------------------------------------------------------------
+
+HttpRequest makeHttpRequest(BeastRequest &&request)
 {
     HttpRequest result;
 
-    result.method     = std::string(request.method_string());
-    result.target     = std::string(request.target());
-    result.body       = std::move(request.body());
-    result.keep_alive = request.keep_alive();
-    result.version    = request.version();
+    result.method       = std::string(request.method_string());
+    result.target       = std::string(request.target());
+    result.body         = std::move(request.body());
+    result.content_type = std::string(request[http::field::content_type]);
+    result.keep_alive   = request.keep_alive();
+    result.version      = request.version();
 
     return result;
 }
 
 //------------------------------------------------------------------------------
 
-BeastResponse makeBeastResponse(
-    const HttpResponse &response)
+BeastResponse makeBeastResponse(const HttpResponse &response)
 {
     BeastResponse result{
         static_cast<http::status>(response.status),
@@ -48,17 +66,22 @@ BeastResponse makeBeastResponse(
 
     result.set(
         http::field::server,
-        "async_web_server");
+        "async_task_web_server");
 
-    result.set(
-        http::field::content_type,
-        response.content_type);
+    if (!response.content_type.empty())
+    {
+        result.set(
+            http::field::content_type,
+            response.content_type);
+    }
 
-    result.keep_alive(
-        response.keep_alive);
+    for (const auto &[name, value] : response.headers)
+    {
+        result.set(name, value);
+    }
 
+    result.keep_alive(response.keep_alive);
     result.body() = response.body;
-
     result.prepare_payload();
 
     return result;
@@ -69,12 +92,18 @@ BeastResponse makeBeastResponse(
 //------------------------------------------------------------------------------
 
 HttpsSession::HttpsSession(
-    tcp::socket           socket,
-    ssl::context         &ssl_context,
-    std::filesystem::path public_dir)
-    : stream_(std::move(socket), ssl_context),
-      public_dir_(std::move(public_dir))
+    tcp::socket                         socket,
+    SslContextPtr                       ssl_context,
+    std::shared_ptr<HttpRequestHandler> request_handler)
+    : ssl_context_(std::move(ssl_context))
+    , stream_(std::move(socket), requireSslContext(ssl_context_))
+    , request_handler_(std::move(request_handler))
 {
+    if (!request_handler_)
+    {
+        throw std::invalid_argument(
+            "HTTP request handler must not be null");
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -100,12 +129,10 @@ net::awaitable<void> HttpsSession::run()
             HttpRequest request = makeHttpRequest(
                 std::move(beast_request));
 
-            HttpResponse response = handleHttpRequest(
-                public_dir_,
+            HttpResponse response = co_await request_handler_->handle(
                 std::move(request));
 
-            BeastResponse beast_response = makeBeastResponse(
-                response);
+            BeastResponse beast_response = makeBeastResponse(response);
 
             const bool keep_alive = beast_response.keep_alive();
 
@@ -126,15 +153,30 @@ net::awaitable<void> HttpsSession::run()
             net::redirect_error(
                 net::use_awaitable,
                 error));
+
+        if (error == ssl::error::stream_truncated)
+        {
+            error.clear();
+        }
+
+        if (error)
+        {
+            std::cerr
+                << "[https session] shutdown error: "
+                << error.message()
+                << '\n';
+        }
     }
     catch (const boost::system::system_error &error)
     {
         if (error.code() != http::error::end_of_stream &&
-            error.code() != net::error::operation_aborted)
+            error.code() != net::error::operation_aborted &&
+            error.code() != ssl::error::stream_truncated)
         {
-            std::cerr << "[https session] error: "
-                      << error.what()
-                      << '\n';
+            std::cerr
+                << "[https session] error: "
+                << error.what()
+                << '\n';
         }
     }
 

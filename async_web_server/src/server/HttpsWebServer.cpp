@@ -1,11 +1,13 @@
 #include "server/HttpsWebServer.hpp"
 
+#include "server/HttpRequestHandler.hpp"
 #include "server/HttpsSession.hpp"
 
 #include <boost/system/system_error.hpp>
 
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <utility>
 
 namespace net = boost::asio;
@@ -13,55 +15,50 @@ namespace net = boost::asio;
 namespace server
 {
 
+//------------------------------------------------------------------------------
+
 HttpsWebServer::HttpsWebServer(
-    net::io_context       &io_context,
-    const tcp::endpoint   &endpoint,
-    std::filesystem::path  public_dir,
-    net::ssl::context     &ssl_context)
-    : acceptor_(io_context),
-      public_dir_(std::move(public_dir)),
-      ssl_context_(ssl_context)
+    net::io_context                    &io_context,
+    const tcp::endpoint                &endpoint,
+    SslContextPtr                       ssl_context,
+    std::shared_ptr<HttpRequestHandler> request_handler)
+    : acceptor_(io_context)
+    , ssl_context_(std::move(ssl_context))
+    , request_handler_(std::move(request_handler))
 {
+    if (!ssl_context_)
+    {
+        throw std::invalid_argument("SSL context must not be null");
+    }
+    if (!request_handler_)
+    {
+        throw std::invalid_argument("HTTP request handler must not be null");
+    }
+
     boost::system::error_code error;
 
     acceptor_.open(endpoint.protocol(), error);
-
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.open");
+        throw boost::system::system_error(error, "acceptor.open");
     }
 
-    acceptor_.set_option(
-        net::socket_base::reuse_address(true),
-        error);
-
+    acceptor_.set_option(net::socket_base::reuse_address(true), error);
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.set_option");
+        throw boost::system::system_error(error, "acceptor.set_option");
     }
 
     acceptor_.bind(endpoint, error);
-
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.bind");
+        throw boost::system::system_error(error, "acceptor.bind");
     }
 
-    acceptor_.listen(
-        net::socket_base::max_listen_connections,
-        error);
-
+    acceptor_.listen(net::socket_base::max_listen_connections, error);
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.listen");
+        throw boost::system::system_error(error, "acceptor.listen");
     }
 }
 
@@ -79,12 +76,12 @@ net::awaitable<void> HttpsWebServer::acceptLoop()
             auto session = std::make_shared<HttpsSession>(
                 std::move(socket),
                 ssl_context_,
-                public_dir_);
+                request_handler_);
 
             net::co_spawn(
                 acceptor_.get_executor(),
-                [session]() {
-                    return session->run();
+                [session]() -> net::awaitable<void> {
+                    co_await session->run();
                 },
                 net::detached);
         }
@@ -96,9 +93,10 @@ net::awaitable<void> HttpsWebServer::acceptLoop()
             co_return;
         }
 
-        std::cerr << "[https server] accept error: "
-                  << error.what()
-                  << '\n';
+        std::cerr
+            << "[https server] accept error: "
+            << error.what()
+            << '\n';
     }
 }
 

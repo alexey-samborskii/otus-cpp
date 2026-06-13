@@ -5,6 +5,8 @@
 namespace server
 {
 
+//------------------------------------------------------------------------------
+
 HttpResponse HttpResponse::ok(
     std::string body,
     std::string content_type,
@@ -15,6 +17,39 @@ HttpResponse HttpResponse::ok(
         200,
         std::move(content_type),
         std::move(body),
+        {},
+        keep_alive,
+        version};
+}
+
+//------------------------------------------------------------------------------
+
+HttpResponse HttpResponse::created(
+    std::string body,
+    std::string location,
+    bool        keep_alive,
+    unsigned    version)
+{
+    return HttpResponse{
+        201,
+        "application/json; charset=utf-8",
+        std::move(body),
+        {{"Location", std::move(location)}},
+        keep_alive,
+        version};
+}
+
+//------------------------------------------------------------------------------
+
+HttpResponse HttpResponse::noContent(
+    bool     keep_alive,
+    unsigned version)
+{
+    return HttpResponse{
+        204,
+        "",
+        "",
+        {},
         keep_alive,
         version};
 }
@@ -28,8 +63,9 @@ HttpResponse HttpResponse::badRequest(
 {
     return HttpResponse{
         400,
-        "text/plain",
+        "application/json; charset=utf-8",
         std::move(body),
+        {},
         keep_alive,
         version};
 }
@@ -43,8 +79,9 @@ HttpResponse HttpResponse::notFound(
 {
     return HttpResponse{
         404,
-        "text/plain",
+        "application/json; charset=utf-8",
         std::move(body),
+        {},
         keep_alive,
         version};
 }
@@ -58,8 +95,25 @@ HttpResponse HttpResponse::methodNotAllowed(
 {
     return HttpResponse{
         405,
-        "text/plain",
+        "application/json; charset=utf-8",
         std::move(body),
+        {},
+        keep_alive,
+        version};
+}
+
+//------------------------------------------------------------------------------
+
+HttpResponse HttpResponse::conflict(
+    std::string body,
+    bool        keep_alive,
+    unsigned    version)
+{
+    return HttpResponse{
+        409,
+        "application/json; charset=utf-8",
+        std::move(body),
+        {},
         keep_alive,
         version};
 }
@@ -73,10 +127,13 @@ HttpResponse HttpResponse::internalServerError(
 {
     return HttpResponse{
         500,
-        "text/plain",
+        "application/json; charset=utf-8",
         std::move(body),
+        {},
         keep_alive,
         version};
 }
+
+//------------------------------------------------------------------------------
 
 } // namespace server
