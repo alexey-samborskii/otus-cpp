@@ -1,6 +1,6 @@
 #include "server/HttpRequest.hpp"
-#include "server/HttpRequestHandler.hpp"
 #include "server/HttpResponse.hpp"
+#include "server/StaticFileHandler.hpp"
 
 #include <gtest/gtest.h>
 
@@ -77,39 +77,46 @@ private:
 
 //------------------------------------------------------------------------------
 
-HttpRequest makeGetRequest(
-    std::string target)
+HttpRequest makeRequest(
+    std::string method,
+    std::string target,
+    bool        keep_alive = false,
+    unsigned    version    = 11)
 {
     HttpRequest request;
 
-    request.method     = "GET";
+    request.method     = std::move(method);
     request.target     = std::move(target);
-    request.keep_alive = false;
-    request.version    = 11;
+    request.keep_alive = keep_alive;
+    request.version    = version;
 
     return request;
 }
 
 //------------------------------------------------------------------------------
 
-HttpRequest makePostRequest(
-    std::string target)
+void expectHeader(
+    const HttpResponse &response,
+    const std::string  &expected_name,
+    const std::string  &expected_value)
 {
-    HttpRequest request;
+    for (const auto &[name, value] : response.headers)
+    {
+        if (name == expected_name)
+        {
+            EXPECT_EQ(value, expected_value);
+            return;
+        }
+    }
 
-    request.method     = "POST";
-    request.target     = std::move(target);
-    request.keep_alive = false;
-    request.version    = 11;
-
-    return request;
+    FAIL() << "Header was not found: " << expected_name;
 }
 
 } // namespace
 
 //------------------------------------------------------------------------------
 
-TEST(HttpRequestHandlerTests, ReturnsIndexHtmlForRootPath)
+TEST(StaticFileHandlerTests, ReturnsIndexHtmlForRootPath)
 {
     const TempPublicDir public_dir;
 
@@ -117,51 +124,81 @@ TEST(HttpRequestHandlerTests, ReturnsIndexHtmlForRootPath)
         "index.html",
         "<html>Hello from index</html>");
 
-    const HttpResponse response = handleHttpRequest(
-        public_dir.path(),
-        makeGetRequest("/"));
+    const StaticFileHandler handler(public_dir.path());
+    const HttpResponse response = handler.handle(
+        makeRequest("GET", "/"));
 
     EXPECT_EQ(response.status, 200);
-    EXPECT_EQ(response.content_type, "text/html");
+    EXPECT_EQ(response.content_type, "text/html; charset=utf-8");
     EXPECT_EQ(response.body, "<html>Hello from index</html>");
+    EXPECT_FALSE(response.keep_alive);
+    EXPECT_EQ(response.version, 11);
+    expectHeader(response, "Cache-Control", "no-cache");
 }
 
 //------------------------------------------------------------------------------
 
-TEST(HttpRequestHandlerTests, ReturnsExistingStaticFile)
+TEST(StaticFileHandlerTests, ReturnsExistingStaticFile)
 {
     const TempPublicDir public_dir;
 
     public_dir.writeFile(
-        "style.css",
+        "styles/style.css",
         "body { margin: 0; }");
 
-    const HttpResponse response = handleHttpRequest(
-        public_dir.path(),
-        makeGetRequest("/style.css"));
+    const StaticFileHandler handler(public_dir.path());
+    const HttpResponse response = handler.handle(
+        makeRequest("GET", "/styles/style.css"));
 
     EXPECT_EQ(response.status, 200);
-    EXPECT_EQ(response.content_type, "text/css");
+    EXPECT_EQ(response.content_type, "text/css; charset=utf-8");
     EXPECT_EQ(response.body, "body { margin: 0; }");
+    expectHeader(response, "Cache-Control", "no-cache");
 }
 
 //------------------------------------------------------------------------------
 
-TEST(HttpRequestHandlerTests, ReturnsNotFoundForMissingFile)
+TEST(StaticFileHandlerTests, IgnoresQueryStringWhenResolvingFile)
 {
     const TempPublicDir public_dir;
 
-    const HttpResponse response = handleHttpRequest(
-        public_dir.path(),
-        makeGetRequest("/missing.html"));
+    public_dir.writeFile(
+        "app.js",
+        "console.log('test');");
+
+    const StaticFileHandler handler(public_dir.path());
+    const HttpResponse response = handler.handle(
+        makeRequest("GET", "/app.js?v=42"));
+
+    EXPECT_EQ(response.status, 200);
+    EXPECT_EQ(
+        response.content_type,
+        "application/javascript; charset=utf-8");
+    EXPECT_EQ(response.body, "console.log('test');");
+}
+
+//------------------------------------------------------------------------------
+
+TEST(StaticFileHandlerTests, ReturnsNotFoundForMissingFile)
+{
+    const TempPublicDir public_dir;
+    const StaticFileHandler handler(public_dir.path());
+
+    const HttpResponse response = handler.handle(
+        makeRequest("GET", "/missing.html", true, 10));
 
     EXPECT_EQ(response.status, 404);
-    EXPECT_EQ(response.body, "Not Found\n");
+    EXPECT_EQ(
+        response.content_type,
+        "application/json; charset=utf-8");
+    EXPECT_EQ(response.body, R"({"error":"Not Found"})");
+    EXPECT_TRUE(response.keep_alive);
+    EXPECT_EQ(response.version, 10);
 }
 
 //------------------------------------------------------------------------------
 
-TEST(HttpRequestHandlerTests, ReturnsMethodNotAllowedForUnsupportedMethod)
+TEST(StaticFileHandlerTests, ReturnsMethodNotAllowedForUnsupportedMethod)
 {
     const TempPublicDir public_dir;
 
@@ -169,17 +206,22 @@ TEST(HttpRequestHandlerTests, ReturnsMethodNotAllowedForUnsupportedMethod)
         "index.html",
         "Hello");
 
-    const HttpResponse response = handleHttpRequest(
-        public_dir.path(),
-        makePostRequest("/"));
+    const StaticFileHandler handler(public_dir.path());
+    const HttpResponse response = handler.handle(
+        makeRequest("POST", "/", true, 10));
 
     EXPECT_EQ(response.status, 405);
-    EXPECT_EQ(response.body, "Method Not Allowed\n");
+    EXPECT_EQ(
+        response.content_type,
+        "application/json; charset=utf-8");
+    EXPECT_EQ(response.body, R"({"error":"Method Not Allowed"})");
+    EXPECT_TRUE(response.keep_alive);
+    EXPECT_EQ(response.version, 10);
 }
 
 //------------------------------------------------------------------------------
 
-TEST(HttpRequestHandlerTests, PreservesKeepAliveAndVersion)
+TEST(StaticFileHandlerTests, PreservesKeepAliveAndVersion)
 {
     const TempPublicDir public_dir;
 
@@ -187,48 +229,47 @@ TEST(HttpRequestHandlerTests, PreservesKeepAliveAndVersion)
         "index.html",
         "Hello");
 
-    HttpRequest request;
-
-    request.method     = "GET";
-    request.target     = "/";
-    request.keep_alive = true;
-    request.version    = 11;
-
-    const HttpResponse response = handleHttpRequest(
-        public_dir.path(),
-        std::move(request));
+    const StaticFileHandler handler(public_dir.path());
+    const HttpResponse response = handler.handle(
+        makeRequest("GET", "/", true, 10));
 
     EXPECT_EQ(response.status, 200);
     EXPECT_TRUE(response.keep_alive);
-    EXPECT_EQ(response.version, 11);
+    EXPECT_EQ(response.version, 10);
 }
 
 //------------------------------------------------------------------------------
 
-TEST(HttpRequestHandlerTests, RejectsInvalidTarget)
+TEST(StaticFileHandlerTests, RejectsInvalidTarget)
 {
     const TempPublicDir public_dir;
+    const StaticFileHandler handler(public_dir.path());
 
-    const HttpResponse response = handleHttpRequest(
-        public_dir.path(),
-        makeGetRequest("index.html"));
+    const HttpResponse response = handler.handle(
+        makeRequest("GET", "index.html"));
 
     EXPECT_EQ(response.status, 400);
-    EXPECT_EQ(response.body, "Bad Request\n");
+    EXPECT_EQ(
+        response.content_type,
+        "application/json; charset=utf-8");
+    EXPECT_EQ(response.body, R"({"error":"Bad Request"})");
 }
 
 //------------------------------------------------------------------------------
 
-TEST(HttpRequestHandlerTests, RejectsPathTraversal)
+TEST(StaticFileHandlerTests, RejectsPathTraversal)
 {
     const TempPublicDir public_dir;
+    const StaticFileHandler handler(public_dir.path());
 
-    const HttpResponse response = handleHttpRequest(
-        public_dir.path(),
-        makeGetRequest("/../secret.txt"));
+    const HttpResponse response = handler.handle(
+        makeRequest("GET", "/../secret.txt"));
 
     EXPECT_EQ(response.status, 400);
-    EXPECT_EQ(response.body, "Bad Request\n");
+    EXPECT_EQ(
+        response.content_type,
+        "application/json; charset=utf-8");
+    EXPECT_EQ(response.body, R"({"error":"Bad Request"})");
 }
 
 } // namespace server

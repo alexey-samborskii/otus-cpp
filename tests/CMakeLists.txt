@@ -5,7 +5,7 @@ add_executable(async_web_server_tests
 
 target_link_libraries(async_web_server_tests
   PRIVATE
-    async_web_server_lib
+    async_web_server::async_web_server
     GTest::gtest_main
 )
 
