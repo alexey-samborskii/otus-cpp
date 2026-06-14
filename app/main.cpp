@@ -1,3 +1,4 @@
+#include "AppConfig.hpp"
 #include "ApplicationRequestHandler.hpp"
 #include "TaskApiHandler.hpp"
 
@@ -19,10 +20,12 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -43,12 +46,13 @@ enum class ServerProtocol
 
 struct ProgramOptions
 {
-    ServerProtocol        protocol         = ServerProtocol::kHttps;
-    std::string           host             = "0.0.0.0";
-    std::uint16_t         port             = 8443;
-    bool                  port_set         = false;
-    std::size_t           threads          = 4;
-    std::filesystem::path public_dir       = "public";
+    ServerProtocol        protocol = ServerProtocol::kHttps;
+    std::string           host     = "0.0.0.0";
+    std::uint16_t         port     = 8443;
+    bool                  port_set = false;
+    std::size_t           threads  = 4;
+    std::filesystem::path public_dir;
+    bool                  public_dir_set   = false;
     std::filesystem::path database_file    = "data/tasks.db";
     std::filesystem::path certificate_file = "certs/server.crt";
     std::filesystem::path private_key_file = "certs/server.key";
@@ -69,6 +73,7 @@ void printUsage(const char *program_name)
         << "  --port <number>          Bind port, default: 8080/8443\n"
         << "  --threads <number>       io_context worker threads, default: 4\n"
         << "  --public-dir <path>      Web interface directory\n"
+        << "                           Default: automatic detection\n"
         << "  --database <path>        SQLite database file\n"
         << "  --cert <path>            TLS certificate file\n"
         << "  --key <path>             TLS private key file\n"
@@ -153,7 +158,7 @@ ProgramOptions parseProgramOptions(
         if (argument == "--help")
         {
             printUsage(argv[0]);
-            std::exit(0);
+            std::exit(EXIT_SUCCESS);
         }
 
         if (argument == "--protocol")
@@ -236,6 +241,171 @@ ProgramOptions parseProgramOptions(
     }
 
     return options;
+}
+
+//------------------------------------------------------------------------------
+
+std::filesystem::path executablePath()
+{
+    std::error_code error;
+
+    const std::filesystem::path path =
+        std::filesystem::read_symlink("/proc/self/exe", error);
+
+    if (error)
+    {
+        return {};
+    }
+
+    return path;
+}
+
+//------------------------------------------------------------------------------
+
+std::filesystem::path localPublicDirectory()
+{
+    const std::filesystem::path executable_path = executablePath();
+
+    if (executable_path.empty())
+    {
+        return {};
+    }
+
+    return executable_path.parent_path() / "public";
+}
+
+//------------------------------------------------------------------------------
+
+std::filesystem::path installedPublicDirectory()
+{
+    const std::filesystem::path executable_path = executablePath();
+
+    if (executable_path.empty())
+    {
+        return {};
+    }
+
+    std::filesystem::path install_prefix =
+        executable_path.parent_path();
+
+    const std::filesystem::path binary_directory(
+        application::config::kInstallBinaryDirectory);
+
+    for (const std::filesystem::path &component : binary_directory)
+    {
+        if (component.empty() || component == ".")
+        {
+            continue;
+        }
+
+        install_prefix = install_prefix.parent_path();
+    }
+
+    return install_prefix /
+           application::config::kInstallPublicDirectory;
+}
+
+//------------------------------------------------------------------------------
+
+bool isUsablePublicDirectory(
+    const std::filesystem::path &directory)
+{
+    if (directory.empty())
+    {
+        return false;
+    }
+
+    std::error_code error;
+
+    if (!std::filesystem::is_directory(directory, error) || error)
+    {
+        return false;
+    }
+
+    std::ifstream index_file(
+        directory / "index.html",
+        std::ios::binary);
+
+    return index_file.good();
+}
+
+//------------------------------------------------------------------------------
+
+std::filesystem::path normalizePath(
+    const std::filesystem::path &path)
+{
+    std::error_code error;
+
+    const std::filesystem::path normalized_path =
+        std::filesystem::weakly_canonical(path, error);
+
+    if (error)
+    {
+        return path.lexically_normal();
+    }
+
+    return normalized_path;
+}
+
+//------------------------------------------------------------------------------
+
+std::filesystem::path resolvePublicDirectory(
+    const ProgramOptions &options)
+{
+    if (options.public_dir_set)
+    {
+        if (isUsablePublicDirectory(options.public_dir))
+        {
+            return normalizePath(options.public_dir);
+        }
+
+        std::cerr
+            << "Public directory specified by --public-dir is unavailable: "
+            << options.public_dir
+            << "\nTrying fallback directories\n";
+    }
+
+    const std::filesystem::path local_directory =
+        localPublicDirectory();
+
+    if (isUsablePublicDirectory(local_directory))
+    {
+        return normalizePath(local_directory);
+    }
+
+    const std::filesystem::path installed_directory =
+        installedPublicDirectory();
+
+    if (isUsablePublicDirectory(installed_directory))
+    {
+        return normalizePath(installed_directory);
+    }
+
+    std::string message =
+        "Unable to locate a readable public directory";
+
+    if (options.public_dir_set)
+    {
+        message +=
+            "\nRequested directory: " +
+            options.public_dir.string();
+    }
+
+    if (!local_directory.empty())
+    {
+        message +=
+            "\nLocal directory: " +
+            local_directory.string();
+    }
+
+    if (!installed_directory.empty())
+    {
+        message +=
+            "\nInstalled directory: " +
+            installed_directory.string();
+    }
+
+    throw std::runtime_error(message);
 }
 
 //------------------------------------------------------------------------------
@@ -364,6 +534,7 @@ void runWebServer(
                         << '\n';
                 }
             }
+
             io_context.stop();
         });
 
@@ -413,7 +584,9 @@ int main(int argc, char *argv[])
 {
     try
     {
-        const ProgramOptions options = parseProgramOptions(argc, argv);
+        ProgramOptions options = parseProgramOptions(argc, argv);
+
+        options.public_dir = resolvePublicDirectory(options);
 
         net::io_context io_context;
 

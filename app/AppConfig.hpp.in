@@ -1,0 +1,12 @@
+#pragma once
+
+namespace application::config
+{
+
+inline constexpr char kInstallBinaryDirectory[] =
+    "@CMAKE_INSTALL_BINDIR@";
+
+inline constexpr char kInstallPublicDirectory[] =
+    "@CMAKE_INSTALL_DATADIR@/@PROJECT_NAME@/public";
+
+} // namespace application::config
