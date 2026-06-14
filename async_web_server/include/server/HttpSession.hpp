@@ -4,6 +4,7 @@
 #include <utility>
 
 #include <boost/asio.hpp>
+#include <boost/beast/core/tcp_stream.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
 
 #include <memory>
@@ -23,7 +24,7 @@ public:
     boost::asio::awaitable<void> run();
 
 private:
-    tcp::socket               socket_;
+    boost::beast::tcp_stream  stream_;
     boost::beast::flat_buffer buffer_;
     CallbackHandleRequest     request_handler_cb_;
 };

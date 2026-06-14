@@ -575,6 +575,64 @@ void runWebServer(
     }
 }
 
+//------------------------------------------------------------------------------
+
+server::HttpResponse makeInternalServerError(unsigned int version)
+{
+    server::HttpResponse response;
+
+    response.status       = 500;
+    response.version      = version;
+    response.content_type = "text/plain; charset=utf-8";
+    response.keep_alive   = false;
+    response.body         = "Internal Server Error";
+
+    return response;
+}
+
+//------------------------------------------------------------------------------
+
+server::CallbackHandleRequest withExceptionHandling(
+    server::CallbackHandleRequest request_handler)
+{
+    return [request_handler = std::move(request_handler)](
+               server::HttpRequest &&request) mutable
+               -> server::AwaitableResponse {
+        const auto request_version = request.version;
+
+        try
+        {
+            co_return co_await request_handler(std::move(request));
+        }
+        catch (const boost::system::system_error &error)
+        {
+            if (error.code() == net::error::operation_aborted)
+            {
+                throw;
+            }
+
+            std::cerr
+                << "[request handler] system error: "
+                << error.what()
+                << '\n';
+        }
+        catch (const std::exception &error)
+        {
+            std::cerr
+                << "[request handler] exception: "
+                << error.what()
+                << '\n';
+        }
+        catch (...)
+        {
+            std::cerr
+                << "[request handler] unknown exception\n";
+        }
+
+        co_return makeInternalServerError(request_version);
+    };
+}
+
 } // namespace
 
 //------------------------------------------------------------------------------
@@ -605,21 +663,29 @@ int main(int argc, char *argv[])
         auto static_file_handler =
             std::make_shared<server::StaticFileHandler>(config.public_dir);
 
-        auto request_handler =
-            [=](server::HttpRequest &&request) mutable
+        auto application_handler =
+            [task_api_handler, static_file_handler](
+                server::HttpRequest &&request) mutable
             -> server::AwaitableResponse {
             constexpr std::string_view kApiPrefix = "/api/";
+
             if (request.target.starts_with(kApiPrefix))
             {
-                co_return co_await task_api_handler->handle(std::move(request));
+                co_return co_await task_api_handler->handle(
+                    std::move(request));
             }
-            co_return static_file_handler->handle(std::move(request));
+
+            co_return static_file_handler->handle(
+                std::move(request));
         };
+
+        auto request_handler_with_exception =
+            withExceptionHandling(std::move(application_handler));
 
         const auto web_server = createWebServer(
             config,
             io_context,
-            request_handler);
+            request_handler_with_exception);
 
         net::signal_set signals(io_context, SIGINT, SIGTERM);
 

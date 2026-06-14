@@ -4,6 +4,7 @@
 
 #include <boost/system/system_error.hpp>
 
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <utility>
@@ -27,25 +28,39 @@ HttpWebServer::HttpWebServer(
     acceptor_.open(endpoint.protocol(), error);
     if (error)
     {
-        throw boost::system::system_error(error, "acceptor.open");
+        throw boost::system::system_error(
+            error,
+            "acceptor.open");
     }
 
-    acceptor_.set_option(net::socket_base::reuse_address(true), error);
+    acceptor_.set_option(
+        net::socket_base::reuse_address(true),
+        error);
+
     if (error)
     {
-        throw boost::system::system_error(error, "acceptor.set_option");
+        throw boost::system::system_error(
+            error,
+            "acceptor.set_option");
     }
 
     acceptor_.bind(endpoint, error);
     if (error)
     {
-        throw boost::system::system_error(error, "acceptor.bind");
+        throw boost::system::system_error(
+            error,
+            "acceptor.bind");
     }
 
-    acceptor_.listen(net::socket_base::max_listen_connections, error);
+    acceptor_.listen(
+        net::socket_base::max_listen_connections,
+        error);
+
     if (error)
     {
-        throw boost::system::system_error(error, "acceptor.listen");
+        throw boost::system::system_error(
+            error,
+            "acceptor.listen");
     }
 }
 
@@ -57,8 +72,9 @@ net::awaitable<void> HttpWebServer::acceptLoop()
     {
         for (;;)
         {
-            tcp::socket socket = co_await acceptor_.async_accept(
-                net::use_awaitable);
+            tcp::socket socket =
+                co_await acceptor_.async_accept(
+                    net::use_awaitable);
 
             auto session = std::make_shared<HttpSession>(
                 std::move(socket),
@@ -69,7 +85,7 @@ net::awaitable<void> HttpWebServer::acceptLoop()
                 [session]() -> net::awaitable<void> {
                     co_await session->run();
                 },
-                net::detached);
+                handleSessionCompletion);
         }
     }
     catch (const boost::system::system_error &error)
@@ -79,10 +95,25 @@ net::awaitable<void> HttpWebServer::acceptLoop()
             co_return;
         }
 
-        std::cerr << "[http server] accept error: "
-                  << error.what()
-                  << '\n';
+        std::cerr
+            << "[http server] accept error: "
+            << error.what()
+            << '\n';
     }
+    catch (const std::exception &error)
+    {
+        std::cerr
+            << "[http server] unexpected exception: "
+            << error.what()
+            << '\n';
+    }
+    catch (...)
+    {
+        std::cerr
+            << "[http server] unknown exception\n";
+    }
+
+    co_return;
 }
 
 //------------------------------------------------------------------------------
@@ -90,6 +121,7 @@ net::awaitable<void> HttpWebServer::acceptLoop()
 void HttpWebServer::stop()
 {
     boost::system::error_code error;
+
     acceptor_.close(error);
 }
 

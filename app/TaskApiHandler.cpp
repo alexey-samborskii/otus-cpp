@@ -147,49 +147,49 @@ std::string escapeJsonString(const std::string &value)
     {
         switch (character)
         {
-            case '"':
-                result << "\\\"";
-                break;
+        case '"':
+            result << "\\\"";
+            break;
 
-            case '\\':
-                result << "\\\\";
-                break;
+        case '\\':
+            result << "\\\\";
+            break;
 
-            case '\b':
-                result << "\\b";
-                break;
+        case '\b':
+            result << "\\b";
+            break;
 
-            case '\f':
-                result << "\\f";
-                break;
+        case '\f':
+            result << "\\f";
+            break;
 
-            case '\n':
-                result << "\\n";
-                break;
+        case '\n':
+            result << "\\n";
+            break;
 
-            case '\r':
-                result << "\\r";
-                break;
+        case '\r':
+            result << "\\r";
+            break;
 
-            case '\t':
-                result << "\\t";
-                break;
+        case '\t':
+            result << "\\t";
+            break;
 
-            default:
-                if (character < 0x20)
-                {
-                    result << "\\u"
-                           << std::hex
-                           << std::setw(4)
-                           << std::setfill('0')
-                           << static_cast<unsigned>(character)
-                           << std::dec;
-                }
-                else
-                {
-                    result << static_cast<char>(character);
-                }
-                break;
+        default:
+            if (character < 0x20)
+            {
+                result << "\\u"
+                       << std::hex
+                       << std::setw(4)
+                       << std::setfill('0')
+                       << static_cast<unsigned>(character)
+                       << std::dec;
+            }
+            else
+            {
+                result << static_cast<char>(character);
+            }
+            break;
         }
     }
 
@@ -262,7 +262,7 @@ std::string tasksToJson(const std::vector<Task> &tasks)
 TaskInput parseTaskInput(const std::string &body)
 {
     std::istringstream input_stream(body);
-    pt::ptree json;
+    pt::ptree          json;
 
     pt::read_json(input_stream, json);
 
@@ -312,8 +312,8 @@ TaskApiHandler::TaskApiHandler(
 
 //------------------------------------------------------------------------------
 
-net::awaitable<server::HttpResponse> TaskApiHandler::handle(
-    server::HttpRequest request) const
+auto TaskApiHandler::handle(server::HttpRequest request) const
+    -> server::AwaitableResponse
 {
     try
     {
@@ -343,7 +343,7 @@ net::awaitable<server::HttpResponse> TaskApiHandler::handle(
             if (request.method == "POST")
             {
                 const TaskInput input = parseTaskInput(request.body);
-                const Task task = co_await service_->create(input);
+                const Task      task  = co_await service_->create(input);
 
                 co_return server::HttpResponse::created(
                     taskToJson(task),
@@ -373,7 +373,7 @@ net::awaitable<server::HttpResponse> TaskApiHandler::handle(
             if (request.method == "PUT")
             {
                 const TaskInput input = parseTaskInput(request.body);
-                const Task task = co_await service_->update(id, input);
+                const Task      task  = co_await service_->update(id, input);
 
                 co_return server::HttpResponse::ok(
                     taskToJson(task),

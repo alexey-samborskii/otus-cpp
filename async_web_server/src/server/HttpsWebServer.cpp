@@ -69,8 +69,9 @@ net::awaitable<void> HttpsWebServer::acceptLoop()
     {
         for (;;)
         {
-            tcp::socket socket = co_await acceptor_.async_accept(
-                net::use_awaitable);
+            tcp::socket socket =
+                co_await acceptor_.async_accept(
+                    net::use_awaitable);
 
             auto session = std::make_shared<HttpsSession>(
                 std::move(socket),
@@ -82,7 +83,7 @@ net::awaitable<void> HttpsWebServer::acceptLoop()
                 [session]() -> net::awaitable<void> {
                     co_await session->run();
                 },
-                net::detached);
+                handleSessionCompletion);
         }
     }
     catch (const boost::system::system_error &error)
@@ -97,6 +98,20 @@ net::awaitable<void> HttpsWebServer::acceptLoop()
             << error.what()
             << '\n';
     }
+    catch (const std::exception &error)
+    {
+        std::cerr
+            << "[https server] unexpected exception: "
+            << error.what()
+            << '\n';
+    }
+    catch (...)
+    {
+        std::cerr
+            << "[https server] unknown exception\n";
+    }
+
+    co_return;
 }
 
 //------------------------------------------------------------------------------

@@ -3,15 +3,19 @@
 #include "server/HttpRequest.hpp"
 #include "server/HttpResponse.hpp"
 
+#include <boost/beast/core/tcp_stream.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/system/system_error.hpp>
 
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <utility>
+#include <stdexcept>
 
-namespace net  = boost::asio;
-namespace http = boost::beast::http;
+namespace net   = boost::asio;
+namespace beast = boost::beast;
+namespace http  = boost::beast::http;
 
 namespace server
 {
@@ -21,6 +25,8 @@ namespace
 
 using BeastRequest  = http::request<http::string_body>;
 using BeastResponse = http::response<http::string_body>;
+
+constexpr auto kIoTimeout = std::chrono::minutes(1);
 
 //------------------------------------------------------------------------------
 
@@ -72,9 +78,14 @@ BeastResponse makeBeastResponse(const HttpResponse &response)
 HttpSession::HttpSession(
     tcp::socket           socket,
     CallbackHandleRequest request_handler_cb)
-    : socket_(std::move(socket))
+    : stream_(std::move(socket))
     , request_handler_cb_(std::move(request_handler_cb))
 {
+    if (!request_handler_cb_)
+    {
+        throw std::invalid_argument(
+            "HTTP request handler must not be null");
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -87,24 +98,33 @@ net::awaitable<void> HttpSession::run()
         {
             BeastRequest beast_request;
 
+            stream_.expires_after(kIoTimeout);
+
             co_await http::async_read(
-                socket_,
+                stream_,
                 buffer_,
                 beast_request,
                 net::use_awaitable);
 
+            stream_.expires_never();
+
             auto request = makeHttpRequest(std::move(beast_request));
 
-            auto response = co_await request_handler_cb_(std::move(request));
+            auto response =
+                co_await request_handler_cb_(std::move(request));
 
             auto beast_response = makeBeastResponse(response);
 
             const bool keep_alive = beast_response.keep_alive();
 
+            stream_.expires_after(kIoTimeout);
+
             co_await http::async_write(
-                socket_,
+                stream_,
                 beast_response,
                 net::use_awaitable);
+
+            stream_.expires_never();
 
             if (!keep_alive)
             {
@@ -114,7 +134,8 @@ net::awaitable<void> HttpSession::run()
     }
     catch (const boost::system::system_error &error)
     {
-        if (error.code() != http::error::end_of_stream &&
+        if (error.code() != beast::error::timeout &&
+            error.code() != http::error::end_of_stream &&
             error.code() != net::error::operation_aborted)
         {
             std::cerr << "[http session] error: "
@@ -125,9 +146,15 @@ net::awaitable<void> HttpSession::run()
 
     boost::system::error_code error;
 
-    socket_.shutdown(tcp::socket::shutdown_send, error);
+    stream_.socket().shutdown(
+        tcp::socket::shutdown_both,
+        error);
+
+    stream_.socket().close(error);
 
     co_return;
 }
+
+//------------------------------------------------------------------------------
 
 } // namespace server

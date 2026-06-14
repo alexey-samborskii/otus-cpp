@@ -1,9 +1,6 @@
 #pragma once
 
-#include "server/HttpRequest.hpp"
-#include "server/HttpResponse.hpp"
-
-#include <boost/asio/awaitable.hpp>
+#include "server/common.hpp"
 
 #include <memory>
 
@@ -20,8 +17,8 @@ class TaskApiHandler
 public:
     explicit TaskApiHandler(std::shared_ptr<tasks::TaskService> service);
 
-    boost::asio::awaitable<server::HttpResponse> handle(
-        server::HttpRequest request) const;
+    auto handle(server::HttpRequest request) const
+        -> server::AwaitableResponse;
 
 private:
     std::shared_ptr<tasks::TaskService> service_;
