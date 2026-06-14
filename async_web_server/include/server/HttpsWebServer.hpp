@@ -1,5 +1,6 @@
 #pragma once
 
+#include "server/common.hpp"
 #include "server/WebServer.hpp"
 
 #include <boost/asio.hpp>
@@ -21,18 +22,18 @@ public:
         std::shared_ptr<boost::asio::ssl::context>;
 
     HttpsWebServer(
-        boost::asio::io_context            &io_context,
-        const tcp::endpoint                &endpoint,
-        SslContextPtr                       ssl_context,
-        std::shared_ptr<HttpRequestHandler> request_handler);
+        boost::asio::io_context &io_context,
+        const tcp::endpoint     &endpoint,
+        SslContextPtr            ssl_context,
+        CallbackHandleRequest    request_handler_cb);
 
     boost::asio::awaitable<void> acceptLoop() override;
-    void stop() override;
+    void                         stop() override;
 
 private:
-    tcp::acceptor                        acceptor_;
-    SslContextPtr                       ssl_context_;
-    std::shared_ptr<HttpRequestHandler> request_handler_;
+    tcp::acceptor         acceptor_;
+    SslContextPtr         ssl_context_;
+    CallbackHandleRequest request_handler_cb_;
 };
 
 } // namespace server

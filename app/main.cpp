@@ -1,8 +1,7 @@
 #include "AppConfig.hpp"
-#include "ApplicationRequestHandler.hpp"
 #include "TaskApiHandler.hpp"
 
-#include "server/HttpRequestHandler.hpp"
+#include "server/common.hpp"
 #include "server/HttpWebServer.hpp"
 #include "server/HttpsWebServer.hpp"
 #include "server/StaticFileHandler.hpp"
@@ -66,7 +65,7 @@ using WebServerPtr          = std::shared_ptr<server::WebServer>;
 void printUsage(const char *program_name)
 {
     std::cout
-        << "Usage: " << program_name << " [options]\n\n"
+        << "Usage: " << program_name << " [config]\n\n"
         << "Options:\n"
         << "  --protocol <http|https>  Server protocol, default: https\n"
         << "  --host <address>         Bind address, default: 0.0.0.0\n"
@@ -149,7 +148,7 @@ ProgramOptions parseProgramOptions(
     int   argc,
     char *argv[])
 {
-    ProgramOptions options;
+    ProgramOptions config;
 
     for (int index = 1; index < argc; ++index)
     {
@@ -168,11 +167,11 @@ ProgramOptions parseProgramOptions(
 
             if (value == "http")
             {
-                options.protocol = ServerProtocol::kHttp;
+                config.protocol = ServerProtocol::kHttp;
             }
             else if (value == "https")
             {
-                options.protocol = ServerProtocol::kHttps;
+                config.protocol = ServerProtocol::kHttps;
             }
             else
             {
@@ -185,49 +184,49 @@ ProgramOptions parseProgramOptions(
 
         if (argument == "--host")
         {
-            options.host = requireValue(argc, argv, index, "--host");
+            config.host = requireValue(argc, argv, index, "--host");
             continue;
         }
 
         if (argument == "--port")
         {
-            options.port =
+            config.port =
                 parsePort(requireValue(argc, argv, index, "--port"));
-            options.port_set = true;
+            config.port_set = true;
             continue;
         }
 
         if (argument == "--threads")
         {
-            options.threads =
+            config.threads =
                 parseThreadCount(requireValue(argc, argv, index, "--threads"));
             continue;
         }
 
         if (argument == "--public-dir")
         {
-            options.public_dir =
+            config.public_dir =
                 requireValue(argc, argv, index, "--public-dir");
             continue;
         }
 
         if (argument == "--database")
         {
-            options.database_file =
+            config.database_file =
                 requireValue(argc, argv, index, "--database");
             continue;
         }
 
         if (argument == "--cert")
         {
-            options.certificate_file =
+            config.certificate_file =
                 requireValue(argc, argv, index, "--cert");
             continue;
         }
 
         if (argument == "--key")
         {
-            options.private_key_file = requireValue(argc, argv, index, "--key");
+            config.private_key_file = requireValue(argc, argv, index, "--key");
             continue;
         }
 
@@ -235,12 +234,12 @@ ProgramOptions parseProgramOptions(
             "Unknown command-line option: " + argument);
     }
 
-    if (!options.port_set)
+    if (!config.port_set)
     {
-        options.port = options.protocol == ServerProtocol::kHttps ? 8443 : 8080;
+        config.port = config.protocol == ServerProtocol::kHttps ? 8443 : 8080;
     }
 
-    return options;
+    return config;
 }
 
 //------------------------------------------------------------------------------
@@ -350,18 +349,18 @@ std::filesystem::path normalizePath(
 //------------------------------------------------------------------------------
 
 std::filesystem::path resolvePublicDirectory(
-    const ProgramOptions &options)
+    const ProgramOptions &config)
 {
-    if (options.public_dir_set)
+    if (config.public_dir_set)
     {
-        if (isUsablePublicDirectory(options.public_dir))
+        if (isUsablePublicDirectory(config.public_dir))
         {
-            return normalizePath(options.public_dir);
+            return normalizePath(config.public_dir);
         }
 
         std::cerr
             << "Public directory specified by --public-dir is unavailable: "
-            << options.public_dir
+            << config.public_dir
             << "\nTrying fallback directories\n";
     }
 
@@ -384,11 +383,11 @@ std::filesystem::path resolvePublicDirectory(
     std::string message =
         "Unable to locate a readable public directory";
 
-    if (options.public_dir_set)
+    if (config.public_dir_set)
     {
         message +=
             "\nRequested directory: " +
-            options.public_dir.string();
+            config.public_dir.string();
     }
 
     if (!local_directory.empty())
@@ -411,45 +410,45 @@ std::filesystem::path resolvePublicDirectory(
 //------------------------------------------------------------------------------
 
 WebServerPtr createWebServer(
-    const ProgramOptions        &options,
-    net::io_context             &io_context,
-    const HttpRequestHandlerPtr &request_handler)
+    const ProgramOptions         &config,
+    net::io_context              &io_context,
+    server::CallbackHandleRequest request_handler)
 {
-    const net::ip::address address = net::ip::make_address(options.host);
+    const net::ip::address address = net::ip::make_address(config.host);
 
-    const net::ip::tcp::endpoint endpoint(address, options.port);
+    const net::ip::tcp::endpoint endpoint(address, config.port);
 
-    if (options.protocol == ServerProtocol::kHttps)
+    if (config.protocol == ServerProtocol::kHttp)
     {
-        auto ssl_context = std::make_shared<ssl::context>(
-            ssl::context::tls_server);
-
-        ssl_context->set_options(
-            ssl::context::default_workarounds |
-            ssl::context::no_sslv2 |
-            ssl::context::no_sslv3 |
-            ssl::context::no_tlsv1 |
-            ssl::context::no_tlsv1_1 |
-            ssl::context::single_dh_use);
-
-        ssl_context->use_certificate_chain_file(
-            options.certificate_file.string());
-
-        ssl_context->use_private_key_file(
-            options.private_key_file.string(),
-            ssl::context::pem);
-
-        return std::make_shared<server::HttpsWebServer>(
+        return std::make_shared<server::HttpWebServer>(
             io_context,
             endpoint,
-            std::move(ssl_context),
-            request_handler);
+            std::move(request_handler));
     }
 
-    return std::make_shared<server::HttpWebServer>(
+    auto ssl_context = std::make_shared<ssl::context>(
+        ssl::context::tls_server);
+
+    ssl_context->set_options(
+        ssl::context::default_workarounds |
+        ssl::context::no_sslv2 |
+        ssl::context::no_sslv3 |
+        ssl::context::no_tlsv1 |
+        ssl::context::no_tlsv1_1 |
+        ssl::context::single_dh_use);
+
+    ssl_context->use_certificate_chain_file(
+        config.certificate_file.string());
+
+    ssl_context->use_private_key_file(
+        config.private_key_file.string(),
+        ssl::context::pem);
+
+    return std::make_shared<server::HttpsWebServer>(
         io_context,
         endpoint,
-        request_handler);
+        std::move(ssl_context),
+        std::move(request_handler));
 }
 
 //------------------------------------------------------------------------------
@@ -510,7 +509,7 @@ void restoreScheduledTasks(
 //------------------------------------------------------------------------------
 
 void runWebServer(
-    const ProgramOptions &options,
+    const ProgramOptions &config,
     net::io_context      &io_context,
     const WebServerPtr   &web_server)
 {
@@ -539,28 +538,28 @@ void runWebServer(
         });
 
     const char *protocol_name =
-        options.protocol == ServerProtocol::kHttps ? "https" : "http";
+        config.protocol == ServerProtocol::kHttps ? "https" : "http";
 
     std::cout
         << "Server started: "
         << protocol_name
         << "://"
-        << options.host
+        << config.host
         << ':'
-        << options.port
+        << config.port
         << "\nPublic directory: "
-        << options.public_dir
+        << config.public_dir
         << "\nSQLite database: "
-        << options.database_file
+        << config.database_file
         << "\nWorker threads: "
-        << options.threads
+        << config.threads
         << '\n';
 
     std::vector<std::thread> workers;
 
-    workers.reserve(options.threads - 1);
+    workers.reserve(config.threads - 1);
 
-    for (std::size_t index = 1; index < options.threads; ++index)
+    for (std::size_t index = 1; index < config.threads; ++index)
     {
         workers.emplace_back(
             [&io_context]() {
@@ -584,13 +583,13 @@ int main(int argc, char *argv[])
 {
     try
     {
-        ProgramOptions options = parseProgramOptions(argc, argv);
+        ProgramOptions config = parseProgramOptions(argc, argv);
 
-        options.public_dir = resolvePublicDirectory(options);
+        config.public_dir = resolvePublicDirectory(config);
 
         net::io_context io_context;
 
-        tasks::TaskRepository repository(options.database_file);
+        tasks::TaskRepository repository(config.database_file);
 
         auto scheduler = std::make_shared<tasks::TaskScheduler>(
             io_context.get_executor(),
@@ -601,16 +600,24 @@ int main(int argc, char *argv[])
             scheduler);
 
         auto task_api_handler =
-            std::make_shared<application::TaskApiHandler>(
-                task_service);
+            std::make_shared<application::TaskApiHandler>(task_service);
+
+        auto static_file_handler =
+            std::make_shared<server::StaticFileHandler>(config.public_dir);
 
         auto request_handler =
-            std::make_shared<application::ApplicationRequestHandler>(
-                server::StaticFileHandler(options.public_dir),
-                task_api_handler);
+            [=](server::HttpRequest &&request) mutable
+            -> server::AwaitableResponse {
+            constexpr std::string_view kApiPrefix = "/api/";
+            if (request.target.starts_with(kApiPrefix))
+            {
+                co_return co_await task_api_handler->handle(std::move(request));
+            }
+            co_return static_file_handler->handle(std::move(request));
+        };
 
         const auto web_server = createWebServer(
-            options,
+            config,
             io_context,
             request_handler);
 
@@ -620,7 +627,7 @@ int main(int argc, char *argv[])
 
         restoreScheduledTasks(io_context, scheduler);
 
-        runWebServer(options, io_context, web_server);
+        runWebServer(config, io_context, web_server);
 
         return EXIT_SUCCESS;
     }

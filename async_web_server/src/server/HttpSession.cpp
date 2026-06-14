@@ -1,7 +1,6 @@
 #include "server/HttpSession.hpp"
 
 #include "server/HttpRequest.hpp"
-#include "server/HttpRequestHandler.hpp"
 #include "server/HttpResponse.hpp"
 
 #include <boost/beast/http.hpp>
@@ -71,10 +70,10 @@ BeastResponse makeBeastResponse(const HttpResponse &response)
 //------------------------------------------------------------------------------
 
 HttpSession::HttpSession(
-    tcp::socket                         socket,
-    std::shared_ptr<HttpRequestHandler> request_handler)
+    tcp::socket           socket,
+    CallbackHandleRequest request_handler_cb)
     : socket_(std::move(socket))
-    , request_handler_(std::move(request_handler))
+    , request_handler_cb_(std::move(request_handler_cb))
 {
 }
 
@@ -94,12 +93,11 @@ net::awaitable<void> HttpSession::run()
                 beast_request,
                 net::use_awaitable);
 
-            HttpRequest request = makeHttpRequest(std::move(beast_request));
+            auto request = makeHttpRequest(std::move(beast_request));
 
-            HttpResponse response = co_await request_handler_->handle(
-                std::move(request));
+            auto response = co_await request_handler_cb_(std::move(request));
 
-            BeastResponse beast_response = makeBeastResponse(response);
+            auto beast_response = makeBeastResponse(response);
 
             const bool keep_alive = beast_response.keep_alive();
 

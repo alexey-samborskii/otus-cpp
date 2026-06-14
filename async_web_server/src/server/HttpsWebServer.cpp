@@ -1,6 +1,5 @@
 #include "server/HttpsWebServer.hpp"
 
-#include "server/HttpRequestHandler.hpp"
 #include "server/HttpsSession.hpp"
 
 #include <boost/system/system_error.hpp>
@@ -18,19 +17,19 @@ namespace server
 //------------------------------------------------------------------------------
 
 HttpsWebServer::HttpsWebServer(
-    net::io_context                    &io_context,
-    const tcp::endpoint                &endpoint,
-    SslContextPtr                       ssl_context,
-    std::shared_ptr<HttpRequestHandler> request_handler)
+    net::io_context      &io_context,
+    const tcp::endpoint  &endpoint,
+    SslContextPtr         ssl_context,
+    CallbackHandleRequest request_handler_cb)
     : acceptor_(io_context)
     , ssl_context_(std::move(ssl_context))
-    , request_handler_(std::move(request_handler))
+    , request_handler_cb_(std::move(request_handler_cb))
 {
     if (!ssl_context_)
     {
         throw std::invalid_argument("SSL context must not be null");
     }
-    if (!request_handler_)
+    if (!request_handler_cb_)
     {
         throw std::invalid_argument("HTTP request handler must not be null");
     }
@@ -76,7 +75,7 @@ net::awaitable<void> HttpsWebServer::acceptLoop()
             auto session = std::make_shared<HttpsSession>(
                 std::move(socket),
                 ssl_context_,
-                request_handler_);
+                request_handler_cb_);
 
             net::co_spawn(
                 acceptor_.get_executor(),

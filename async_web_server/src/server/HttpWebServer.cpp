@@ -1,6 +1,5 @@
 #include "server/HttpWebServer.hpp"
 
-#include "server/HttpRequestHandler.hpp"
 #include "server/HttpSession.hpp"
 
 #include <boost/system/system_error.hpp>
@@ -17,11 +16,11 @@ namespace server
 //------------------------------------------------------------------------------
 
 HttpWebServer::HttpWebServer(
-    net::io_context                    &io_context,
-    const tcp::endpoint                &endpoint,
-    std::shared_ptr<HttpRequestHandler> request_handler)
+    net::io_context      &io_context,
+    const tcp::endpoint  &endpoint,
+    CallbackHandleRequest request_handler_cb)
     : acceptor_(io_context)
-    , request_handler_(std::move(request_handler))
+    , request_handler_cb_(std::move(request_handler_cb))
 {
     boost::system::error_code error;
 
@@ -63,7 +62,7 @@ net::awaitable<void> HttpWebServer::acceptLoop()
 
             auto session = std::make_shared<HttpSession>(
                 std::move(socket),
-                request_handler_);
+                request_handler_cb_);
 
             net::co_spawn(
                 acceptor_.get_executor(),
@@ -93,5 +92,7 @@ void HttpWebServer::stop()
     boost::system::error_code error;
     acceptor_.close(error);
 }
+
+//------------------------------------------------------------------------------
 
 } // namespace server

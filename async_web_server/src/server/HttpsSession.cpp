@@ -1,7 +1,6 @@
 #include "server/HttpsSession.hpp"
 
 #include "server/HttpRequest.hpp"
-#include "server/HttpRequestHandler.hpp"
 #include "server/HttpResponse.hpp"
 
 #include <boost/asio/ssl/error.hpp>
@@ -92,17 +91,16 @@ BeastResponse makeBeastResponse(const HttpResponse &response)
 //------------------------------------------------------------------------------
 
 HttpsSession::HttpsSession(
-    tcp::socket                         socket,
-    SslContextPtr                       ssl_context,
-    std::shared_ptr<HttpRequestHandler> request_handler)
+    tcp::socket           socket,
+    SslContextPtr         ssl_context,
+    CallbackHandleRequest request_handler_cb)
     : ssl_context_(std::move(ssl_context))
     , stream_(std::move(socket), requireSslContext(ssl_context_))
-    , request_handler_(std::move(request_handler))
+    , request_handler_cb_(std::move(request_handler_cb))
 {
-    if (!request_handler_)
+    if (!request_handler_cb_)
     {
-        throw std::invalid_argument(
-            "HTTP request handler must not be null");
+        throw std::invalid_argument("HTTP request handler must not be null");
     }
 }
 
@@ -126,13 +124,11 @@ net::awaitable<void> HttpsSession::run()
                 beast_request,
                 net::use_awaitable);
 
-            HttpRequest request = makeHttpRequest(
-                std::move(beast_request));
+            auto request = makeHttpRequest(std::move(beast_request));
 
-            HttpResponse response = co_await request_handler_->handle(
-                std::move(request));
+            auto response = co_await request_handler_cb_(std::move(request));
 
-            BeastResponse beast_response = makeBeastResponse(response);
+            auto beast_response = makeBeastResponse(response);
 
             const bool keep_alive = beast_response.keep_alive();
 

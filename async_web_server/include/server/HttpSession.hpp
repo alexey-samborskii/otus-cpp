@@ -1,5 +1,6 @@
 #pragma once
 
+#include "server/common.hpp"
 #include <utility>
 
 #include <boost/asio.hpp>
@@ -10,23 +11,21 @@
 namespace server
 {
 
-class HttpRequestHandler;
-
 class HttpSession
 {
 public:
     using tcp = boost::asio::ip::tcp;
 
     HttpSession(
-        tcp::socket                         socket,
-        std::shared_ptr<HttpRequestHandler> request_handler);
+        tcp::socket           socket,
+        CallbackHandleRequest request_handler_cb);
 
     boost::asio::awaitable<void> run();
 
 private:
-    tcp::socket                         socket_;
-    boost::beast::flat_buffer           buffer_;
-    std::shared_ptr<HttpRequestHandler> request_handler_;
+    tcp::socket               socket_;
+    boost::beast::flat_buffer buffer_;
+    CallbackHandleRequest     request_handler_cb_;
 };
 
 } // namespace server
