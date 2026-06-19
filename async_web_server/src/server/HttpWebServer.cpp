@@ -72,9 +72,8 @@ net::awaitable<void> HttpWebServer::acceptLoop()
     {
         for (;;)
         {
-            tcp::socket socket =
-                co_await acceptor_.async_accept(
-                    net::use_awaitable);
+            tcp::socket socket = co_await acceptor_.async_accept(
+                net::use_awaitable);
 
             auto session = std::make_shared<HttpSession>(
                 std::move(socket),

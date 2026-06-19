@@ -19,8 +19,8 @@ namespace tasks
 TaskScheduler::TaskScheduler(
     net::any_io_executor executor,
     TaskRepository      &repository)
-    : strand_(net::make_strand(std::move(executor))),
-      repository_(repository)
+    : strand_(net::make_strand(std::move(executor)))
+    , repository_(repository)
 {
 }
 
@@ -72,11 +72,8 @@ void TaskScheduler::scheduleImpl(Task task)
     const auto scheduled_time = std::chrono::system_clock::time_point{
         std::chrono::milliseconds(task.scheduled_at_ms)};
 
-    auto timer = std::make_shared<Timer>(
-        strand_,
-        scheduled_time);
-
-    const TaskId id = task.id;
+    auto         timer = std::make_shared<Timer>(strand_, scheduled_time);
+    const TaskId id    = task.id;
 
     timers_[id] = timer;
 
@@ -171,15 +168,11 @@ net::awaitable<void> TaskScheduler::executeTask(TaskId id)
 
         net::steady_timer execution_delay(strand_);
 
-        execution_delay.expires_after(
-            std::chrono::milliseconds(250));
+        execution_delay.expires_after(std::chrono::milliseconds(250));
 
-        co_await execution_delay.async_wait(
-            net::use_awaitable);
+        co_await execution_delay.async_wait(net::use_awaitable);
 
-        repository_.setStatus(
-            id,
-            TaskStatus::kCompleted);
+        repository_.setStatus(id, TaskStatus::kCompleted);
 
         std::cout << "[scheduler] task "
                   << id

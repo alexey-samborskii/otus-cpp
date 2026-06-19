@@ -26,8 +26,8 @@ TaskNotFoundError::TaskNotFoundError(const std::string &message)
 TaskService::TaskService(
     TaskRepository                &repository,
     std::shared_ptr<TaskScheduler> scheduler)
-    : repository_(repository),
-      scheduler_(std::move(scheduler))
+    : repository_(repository)
+    , scheduler_(std::move(scheduler))
 {
 }
 
@@ -75,9 +75,7 @@ net::awaitable<Task> TaskService::update(
 
     co_await scheduler_->cancel(id);
 
-    const std::optional<Task> task = repository_.update(
-        id,
-        input);
+    const std::optional<Task> task = repository_.update(id, input);
 
     if (!task.has_value())
     {
