@@ -1,0 +1,167 @@
+@startuml
+title Class diagram: async task web server
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam class {
+    BackgroundColor #F8FAFC
+    BorderColor #334155
+    ArrowColor #334155
+}
+
+class ApplicationMain {
+    +main(argc, argv)
+    -parseProgramOptions()
+    -resolvePublicDirectory()
+    -createWebServer()
+}
+
+interface WebServer {
+    +acceptLoop()
+    +stop()
+}
+
+class HttpWebServer {
+    -acceptor_
+    -request_handler_
+    +acceptLoop()
+    +stop()
+}
+
+class HttpsWebServer {
+    -acceptor_
+    -ssl_context_
+    -request_handler_
+    +acceptLoop()
+    +stop()
+}
+
+class HttpSession {
+    -socket_
+    -request_handler_
+    +run()
+    -readRequest()
+    -writeResponse()
+}
+
+class HttpsSession {
+    -ssl_stream_
+    -request_handler_
+    +run()
+    -readRequest()
+    -writeResponse()
+}
+
+class HttpRequest {
+    +method
+    +target
+    +version
+    +headers
+    +body
+}
+
+class HttpResponse {
+    +status
+    +version
+    +headers
+    +body
+    +toString()
+}
+
+class StaticFileHandler {
+    -public_dir_
+    +handle(request)
+}
+
+class TaskApiHandler {
+    -service_
+    +handle(request)
+}
+
+class TaskService {
+    -repository_
+    -scheduler_
+    +create(input)
+    +findAll()
+    +findById(id)
+    +update(id, input)
+    +remove(id)
+    +runNow(id)
+}
+
+class TaskRepository {
+    -database_
+    -mutex_
+    +create(input)
+    +findAll()
+    +findScheduled()
+    +update(id, input)
+    +remove(id)
+    +claimForExecution(id)
+    +setStatus(id, status)
+}
+
+class TaskScheduler {
+    -strand_
+    -repository_
+    -timers_
+    +restore()
+    +schedule(task)
+    +cancel(id)
+    +runNow(task)
+    -executeTask(id)
+}
+
+class Task {
+    +id
+    +title
+    +description
+    +scheduled_at_ms
+    +status
+    +error_message
+    +created_at_ms
+    +updated_at_ms
+}
+
+enum TaskStatus {
+    scheduled
+    running
+    completed
+    failed
+}
+
+database SQLite
+folder "public/" as PublicFiles
+
+ApplicationMain --> WebServer : creates
+ApplicationMain --> TaskRepository : creates
+ApplicationMain --> TaskScheduler : creates
+ApplicationMain --> TaskService : creates
+ApplicationMain --> TaskApiHandler : creates
+ApplicationMain --> StaticFileHandler : creates
+
+WebServer <|.. HttpWebServer
+WebServer <|.. HttpsWebServer
+HttpWebServer *-- HttpSession : creates
+HttpsWebServer *-- HttpsSession : creates
+
+HttpSession ..> HttpRequest : parses
+HttpsSession ..> HttpRequest : parses
+HttpSession ..> HttpResponse : writes
+HttpsSession ..> HttpResponse : writes
+
+HttpSession ..> TaskApiHandler : callback
+HttpsSession ..> TaskApiHandler : callback
+HttpSession ..> StaticFileHandler : callback
+HttpsSession ..> StaticFileHandler : callback
+
+TaskApiHandler --> TaskService
+TaskService --> TaskRepository
+TaskService --> TaskScheduler
+TaskScheduler --> TaskRepository
+TaskRepository --> Task
+Task --> TaskStatus
+TaskRepository --> SQLite
+StaticFileHandler --> PublicFiles
+@enduml

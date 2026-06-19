@@ -1,0 +1,74 @@
+@startuml
+title Request flow: browser request processing
+
+skinparam shadowing false
+skinparam activity {
+    BackgroundColor #F8FAFC
+    BorderColor #334155
+    ArrowColor #334155
+}
+
+start
+:Browser sends HTTP/HTTPS request;
+:WebServer accepts TCP connection;
+
+if (HTTPS?) then (yes)
+    :HttpsSession performs TLS handshake;
+else (no)
+    :HttpSession starts plain TCP session;
+endif
+
+:Session reads bytes from socket;
+:Parse request line, headers and body;
+:Create HttpRequest;
+
+if (target starts with /api/) then (API request)
+    :TaskApiHandler parses route;
+
+    if (GET /api/tasks?) then (yes)
+        :TaskService.findAll();
+        :TaskRepository reads tasks from SQLite;
+        :Build JSON list response;
+    elseif (POST /api/tasks?) then (yes)
+        :Parse JSON body to TaskInput;
+        :TaskService.create(input);
+        :TaskRepository inserts task into SQLite;
+        :TaskScheduler schedules timer;
+        :Build JSON created response;
+    elseif (PUT /api/tasks/{id}?) then (yes)
+        :Parse JSON body to TaskInput;
+        :TaskService.update(id, input);
+        :TaskRepository updates task in SQLite;
+        :TaskScheduler reschedules timer;
+        :Build JSON updated response;
+    elseif (DELETE /api/tasks/{id}?) then (yes)
+        :TaskService.remove(id);
+        :TaskRepository deletes task from SQLite;
+        :TaskScheduler cancels timer;
+        :Build empty response;
+    else (other API route)
+        :Build 404 or 405 response;
+    endif
+else (static file request)
+    :StaticFileHandler resolves path in public/;
+    if (file exists?) then (yes)
+        :Read index.html / styles.css / app.js;
+        :Build file response;
+    else (no)
+        :Build 404 response;
+    endif
+endif
+
+:Session writes HttpResponse to socket;
+:Browser receives response;
+stop
+
+legend right
+Scheduler timer flow:
+TaskScheduler timer fires ->
+TaskRepository.claimForExecution() ->
+status = running ->
+execute task ->
+status = completed/failed
+endlegend
+@enduml
