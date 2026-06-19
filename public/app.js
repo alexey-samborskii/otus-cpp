@@ -1,249 +1,287 @@
-const elements = {
-    form: document.querySelector("#task-form"),
-    taskId: document.querySelector("#task-id"),
-    title: document.querySelector("#task-title"),
-    description: document.querySelector("#task-description"),
-    scheduledAt: document.querySelector("#task-scheduled-at"),
-    editorTitle: document.querySelector("#editor-title"),
-    submitButton: document.querySelector("#submit-button"),
-    cancelEditButton: document.querySelector("#cancel-edit-button"),
-    refreshButton: document.querySelector("#refresh-button"),
-    formMessage: document.querySelector("#form-message"),
-    taskCount: document.querySelector("#task-count"),
-    loading: document.querySelector("#loading"),
-    emptyState: document.querySelector("#empty-state"),
-    tasksList: document.querySelector("#tasks-list"),
-    taskTemplate: document.querySelector("#task-template")
-};
+const apiUrl = "/api/tasks";
+const $ = (id) => document.getElementById(id);
 
-const statusNames = {
-    scheduled: "Запланирована",
-    running: "Выполняется",
-    completed: "Выполнена",
-    failed: "Ошибка"
-};
+const form = $("task-form");
+const taskId = $("task-id");
+const title = $("task-title");
+const description = $("task-description");
+const scheduledAt = $("task-scheduled-at");
+const formTitle = $("form-title");
+const submitButton = $("submit-button");
+const cancelEditButton = $("cancel-edit-button");
+const refreshButton = $("refresh-button");
+const formMessage = $("form-message");
+const loading = $("loading");
+const emptyState = $("empty-state");
+const tasksList = $("tasks-list");
+const taskCount = $("task-count");
+const taskTemplate = $("task-template");
 
 let tasks = [];
-let refreshTimer = null;
 
-function toDateTimeLocal(timestamp) {
-    const date = new Date(timestamp);
-    const timezoneOffset = date.getTimezoneOffset() * 60_000;
+//------------------------------------------------------------------------------
 
-    return new Date(date.getTime() - timezoneOffset)
-        .toISOString()
-        .slice(0, 16);
+function showMessage(text, isError = false) {
+    formMessage.textContent = text;
+    formMessage.classList.toggle("error", isError);
 }
 
-function formatDate(timestamp) {
-    return new Intl.DateTimeFormat("ru-RU", {
-        dateStyle: "medium",
-        timeStyle: "short"
-    }).format(new Date(timestamp));
+//------------------------------------------------------------------------------
+
+function setLoading(value) {
+    loading.classList.toggle("hidden", !value);
+    refreshButton.disabled = value;
+    submitButton.disabled = value;
 }
 
-function setDefaultScheduledAt() {
-    elements.scheduledAt.value = toDateTimeLocal(Date.now() + 5 * 60_000);
-}
+//------------------------------------------------------------------------------
 
-function setFormMessage(message, isError = false) {
-    elements.formMessage.textContent = message;
-    elements.formMessage.classList.toggle("error", isError);
-}
-
-function setFormBusy(isBusy) {
-    elements.submitButton.disabled = isBusy;
-    elements.cancelEditButton.disabled = isBusy;
-}
-
-async function request(url, options = {}) {
+async function apiRequest(url, options = {}) {
     const response = await fetch(url, {
         headers: {
-            "Content-Type": "application/json",
-            ...(options.headers ?? {})
+            "Content-Type": "application/json"
         },
         ...options
     });
 
-    if (response.status === 204) {
+    const text = await response.text();
+
+    if (!response.ok) {
+        throw new Error(text || `HTTP error ${response.status}`);
+    }
+
+    return text ? JSON.parse(text) : null;
+}
+
+//------------------------------------------------------------------------------
+
+function toTimestampMs(value) {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
         return null;
     }
 
-    const contentType = response.headers.get("content-type") ?? "";
-    const body = contentType.includes("application/json")
-        ? await response.json()
-        : await response.text();
-
-    if (!response.ok) {
-        const message = typeof body === "object" && body?.error
-            ? body.error
-            : `HTTP ${response.status}`;
-
-        throw new Error(message);
-    }
-
-    return body;
+    return date.getTime();
 }
 
-async function loadTasks({silent = false} = {}) {
-    if (!silent) {
-        elements.loading.classList.remove("hidden");
-        elements.emptyState.classList.add("hidden");
+//------------------------------------------------------------------------------
+
+function toDateTimeLocalValue(value) {
+    if (!value) {
+        return "";
     }
 
-    try {
-        tasks = await request("/api/tasks");
-        renderTasks();
-    } catch (error) {
-        elements.tasksList.replaceChildren();
-        elements.emptyState.textContent = `Не удалось загрузить задачи: ${error.message}`;
-        elements.emptyState.classList.remove("hidden");
-    } finally {
-        elements.loading.classList.add("hidden");
+    const date = new Date(Number(value));
+
+    if (Number.isNaN(date.getTime())) {
+        return "";
     }
+
+    const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+    const localDate = new Date(date.getTime() - offsetMs);
+
+    return localDate.toISOString().slice(0, 16);
 }
 
-function renderTasks() {
-    elements.tasksList.replaceChildren();
-    elements.taskCount.textContent = String(tasks.length);
-    elements.emptyState.textContent = "Задач пока нет. Создайте первую задачу слева.";
-    elements.emptyState.classList.toggle("hidden", tasks.length !== 0);
+//------------------------------------------------------------------------------
 
-    for (const task of tasks) {
-        const fragment = elements.taskTemplate.content.cloneNode(true);
-        const card = fragment.querySelector(".task-card");
-        const badge = fragment.querySelector(".status-badge");
-
-        fragment.querySelector(".task-id").textContent = `Задача #${task.id}`;
-        fragment.querySelector(".task-title").textContent = task.title;
-        fragment.querySelector(".task-description").textContent = task.description;
-        fragment.querySelector(".task-scheduled-at").textContent = formatDate(task.scheduledAt);
-        fragment.querySelector(".task-updated-at").textContent = formatDate(task.updatedAt);
-
-        badge.textContent = statusNames[task.status] ?? task.status;
-        badge.classList.add(`status-${task.status}`);
-
-        const errorElement = fragment.querySelector(".task-error");
-
-        if (task.errorMessage) {
-            errorElement.textContent = task.errorMessage;
-            errorElement.classList.remove("hidden");
-        }
-
-        const runButton = fragment.querySelector(".run-button");
-        runButton.disabled = task.status === "running";
-        runButton.addEventListener("click", () => runTask(task.id));
-
-        fragment.querySelector(".edit-button")
-            .addEventListener("click", () => beginEdit(task));
-
-        fragment.querySelector(".delete-button")
-            .addEventListener("click", () => deleteTask(task));
-
-        card.dataset.taskId = String(task.id);
-        elements.tasksList.append(fragment);
+function formatDateTime(value) {
+    if (!value) {
+        return "Не указано";
     }
+
+    const date = new Date(Number(value));
+
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
+
+    return date.toLocaleString("ru-RU");
 }
 
-function beginEdit(task) {
-    elements.taskId.value = String(task.id);
-    elements.title.value = task.title;
-    elements.description.value = task.description;
-    elements.scheduledAt.value = toDateTimeLocal(task.scheduledAt);
-    elements.editorTitle.textContent = `Изменение задачи #${task.id}`;
-    elements.submitButton.textContent = "Сохранить изменения";
-    elements.cancelEditButton.classList.remove("hidden");
-    setFormMessage("");
-    elements.title.focus();
+//------------------------------------------------------------------------------
+
+function formatStatus(status) {
+    if (status === "scheduled") {
+        return "ЗАПЛАНИРОВАНО";
+    }
+
+    if (status === "running") {
+        return "ВЫПОЛНЯЕТСЯ";
+    }
+
+    if (status === "completed") {
+        return "ИСПОЛНЕНО";
+    }
+
+    if (status === "failed") {
+        return "ОШИБКА";
+    }
+
+    return status || "";
 }
+
+//------------------------------------------------------------------------------
 
 function resetForm() {
-    elements.form.reset();
-    elements.taskId.value = "";
-    elements.editorTitle.textContent = "Новая задача";
-    elements.submitButton.textContent = "Создать задачу";
-    elements.cancelEditButton.classList.add("hidden");
-    setDefaultScheduledAt();
+    form.reset();
+    taskId.value = "";
+
+    formTitle.textContent = "Создать задачу";
+    submitButton.textContent = "Создать задачу";
+    cancelEditButton.classList.add("hidden");
+
+    showMessage("");
 }
 
-async function saveTask(event) {
-    event.preventDefault();
-    setFormBusy(true);
-    setFormMessage("");
+//------------------------------------------------------------------------------
 
-    const id = elements.taskId.value;
-    const scheduledAt = new Date(elements.scheduledAt.value).getTime();
+function startEdit(task) {
+    taskId.value = task.id;
+    title.value = task.title || "";
+    description.value = task.description || "";
+    scheduledAt.value = toDateTimeLocalValue(task.scheduledAt);
 
-    const payload = {
-        title: elements.title.value.trim(),
-        description: elements.description.value.trim(),
-        scheduledAt
-    };
+    formTitle.textContent = "Изменить задачу";
+    submitButton.textContent = "Сохранить изменения";
+    cancelEditButton.classList.remove("hidden");
 
-    try {
-        if (id) {
-            await request(`/api/tasks/${id}`, {
-                method: "PUT",
-                body: JSON.stringify(payload)
-            });
-            setFormMessage("Задача изменена и перепланирована.");
-        } else {
-            await request("/api/tasks", {
-                method: "POST",
-                body: JSON.stringify(payload)
-            });
-            setFormMessage("Задача создана.");
+    showMessage("Измените параметры задачи и сохраните изменения.");
+}
+
+//------------------------------------------------------------------------------
+
+function renderTasks() {
+    tasksList.innerHTML = "";
+    taskCount.textContent = String(tasks.length);
+    emptyState.classList.toggle("hidden", tasks.length > 0);
+
+    for (const task of tasks) {
+        const node = taskTemplate.content.cloneNode(true);
+
+        node.querySelector(".task-id").textContent = `ID: ${task.id}`;
+        node.querySelector(".task-title").textContent = task.title || "Без названия";
+        node.querySelector(".task-description").textContent = task.description || "";
+        node.querySelector(".task-scheduled-at").textContent =
+            formatDateTime(task.scheduledAt);
+
+        const statusElement = node.querySelector(".task-status, .status-badge");
+
+        if (statusElement) {
+            statusElement.textContent = formatStatus(task.status);
         }
 
-        resetForm();
-        await loadTasks({silent: true});
-    } catch (error) {
-        setFormMessage(error.message, true);
-    } finally {
-        setFormBusy(false);
+        const errorElement = node.querySelector(".task-error");
+
+        if (errorElement) {
+            errorElement.textContent = task.errorMessage || "";
+            errorElement.classList.toggle("hidden", !task.errorMessage);
+        }
+
+        node.querySelector(".edit-button").addEventListener("click", () => {
+            startEdit(task);
+        });
+
+        node.querySelector(".delete-button").addEventListener("click", async () => {
+            await deleteTask(task.id);
+        });
+
+        tasksList.appendChild(node);
     }
 }
 
-async function deleteTask(task) {
-    const confirmed = window.confirm(`Удалить задачу «${task.title}»?`);
+//------------------------------------------------------------------------------
 
-    if (!confirmed) {
+async function loadTasks() {
+    setLoading(true);
+
+    try {
+        const response = await apiRequest(apiUrl);
+
+        tasks = Array.isArray(response) ? response : response.tasks || [];
+
+        renderTasks();
+        showMessage("Список задач обновлён.");
+    } catch (error) {
+        showMessage(`Ошибка получения списка задач: ${error.message}`, true);
+    } finally {
+        setLoading(false);
+    }
+}
+
+//------------------------------------------------------------------------------
+
+async function deleteTask(id) {
+    if (!window.confirm("Удалить задачу?")) {
         return;
     }
 
     try {
-        await request(`/api/tasks/${task.id}`, {method: "DELETE"});
+        await apiRequest(`${apiUrl}/${id}`, {
+            method: "DELETE"
+        });
 
-        if (elements.taskId.value === String(task.id)) {
-            resetForm();
-        }
-
-        await loadTasks({silent: true});
+        showMessage("Задача удалена.");
+        await loadTasks();
     } catch (error) {
-        window.alert(`Не удалось удалить задачу: ${error.message}`);
+        showMessage(`Ошибка удаления задачи: ${error.message}`, true);
     }
 }
 
-async function runTask(id) {
+//------------------------------------------------------------------------------
+
+form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const payload = {
+        title: title.value.trim(),
+        description: description.value.trim(),
+        scheduledAt: toTimestampMs(scheduledAt.value)
+    };
+
+    if (!payload.title) {
+        showMessage("Введите название задачи.", true);
+        return;
+    }
+
+    if (payload.scheduledAt === null) {
+        showMessage("Укажите дату и время выполнения.", true);
+        return;
+    }
+
+    const id = taskId.value;
+    const url = id ? `${apiUrl}/${id}` : apiUrl;
+    const method = id ? "PUT" : "POST";
+
+    setLoading(true);
+
     try {
-        await request(`/api/tasks/${id}/run`, {method: "POST"});
-        await loadTasks({silent: true});
+        await apiRequest(url, {
+            method,
+            body: JSON.stringify(payload)
+        });
+
+        showMessage(id ? "Задача изменена." : "Задача создана.");
+        resetForm();
+        await loadTasks();
     } catch (error) {
-        window.alert(`Не удалось запустить задачу: ${error.message}`);
+        showMessage(`Ошибка сохранения задачи: ${error.message}`, true);
+    } finally {
+        setLoading(false);
     }
-}
+});
 
-function startAutoRefresh() {
-    window.clearInterval(refreshTimer);
-    refreshTimer = window.setInterval(
-        () => loadTasks({silent: true}),
-        3000);
-}
+//------------------------------------------------------------------------------
 
-elements.form.addEventListener("submit", saveTask);
-elements.cancelEditButton.addEventListener("click", resetForm);
-elements.refreshButton.addEventListener("click", () => loadTasks());
+cancelEditButton.addEventListener("click", resetForm);
 
-setDefaultScheduledAt();
-loadTasks();
-startAutoRefresh();
+//------------------------------------------------------------------------------
+
+refreshButton.addEventListener("click", loadTasks);
+
+//------------------------------------------------------------------------------
+
+document.addEventListener("DOMContentLoaded", loadTasks);
+
+//------------------------------------------------------------------------------
