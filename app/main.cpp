@@ -663,7 +663,7 @@ int main(int argc, char *argv[])
         auto static_file_handler =
             std::make_shared<server::StaticFileHandler>(config.public_dir);
 
-        auto application_handler =
+        auto application_request_handler =
             [task_api_handler, static_file_handler](
                 server::HttpRequest &&request) mutable
             -> server::AwaitableResponse {
@@ -680,7 +680,7 @@ int main(int argc, char *argv[])
         };
 
         auto request_handler_with_exception =
-            withExceptionHandling(std::move(application_handler));
+            withExceptionHandling(std::move(application_request_handler));
 
         const auto web_server = createWebServer(
             config,
