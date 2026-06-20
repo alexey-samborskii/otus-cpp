@@ -1,167 +1,156 @@
 @startuml
 title Class diagram: async task web server
 
+left to right direction
+
 skinparam classAttributeIconSize 0
 skinparam shadowing false
 skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 45
 skinparam class {
     BackgroundColor #F8FAFC
     BorderColor #334155
     ArrowColor #334155
 }
 
-class ApplicationMain {
-    +main(argc, argv)
-    -parseProgramOptions()
-    -resolvePublicDirectory()
-    -createWebServer()
+hide empty members
+
+package "application" {
+    class ApplicationMain <<entry point>> {
+        +main(argc, argv)
+        +makeRequestHandler(...)
+        +createWebServer(...)
+    }
+
+    class TaskApiHandler {
+        +handle(request)
+    }
+
+    class ApplicationMetrics {
+        +recordRequest()
+        +recordResponse(status)
+        +recordException()
+        +toPrometheusText(...)
+    }
 }
 
-interface WebServer {
-    +acceptLoop()
-    +stop()
+package "server" {
+    interface WebServer {
+        +acceptLoop()
+        +stop()
+    }
+
+    class HttpWebServer
+    class HttpsWebServer
+
+    abstract class HttpSessionBase {
+        #processRequests(...)
+    }
+
+    class HttpSession {
+        +run()
+    }
+
+    class HttpsSession {
+        +run()
+    }
+
+    class HttpRequest
+
+    class HttpResponse {
+        +ok(...)
+        +created(...)
+        +badRequest(...)
+        +notFound(...)
+        +methodNotAllowed(...)
+    }
+
+    class StaticFileHandler {
+        +handle(request)
+    }
+
+    class PublicFiles <<folder>> {
+        public/
+    }
 }
 
-class HttpWebServer {
-    -acceptor_
-    -request_handler_
-    +acceptLoop()
-    +stop()
+package "tasks" {
+    class TaskService {
+        +create(input)
+        +findAll()
+        +findById(id)
+        +update(id, input)
+        +remove(id)
+        +runNow(id)
+    }
+
+    class TaskRepository {
+        +create(input)
+        +findById(id)
+        +findAll()
+        +findScheduled()
+        +update(id, input)
+        +remove(id)
+        +claimForExecution(id)
+        +setStatus(id, status, error)
+    }
+
+    class TaskScheduler {
+        +restore()
+        +schedule(task)
+        +cancel(id)
+        +runNow(task)
+        +metrics()
+    }
+
+    class TaskSchedulerMetrics
+    class Task
+    class TaskInput
+
+    enum TaskStatus {
+        kScheduled
+        kRunning
+        kCompleted
+        kFailed
+    }
+
+    class SQLite <<database>>
 }
 
-class HttpsWebServer {
-    -acceptor_
-    -ssl_context_
-    -request_handler_
-    +acceptLoop()
-    +stop()
-}
-
-class HttpSession {
-    -socket_
-    -request_handler_
-    +run()
-    -readRequest()
-    -writeResponse()
-}
-
-class HttpsSession {
-    -ssl_stream_
-    -request_handler_
-    +run()
-    -readRequest()
-    -writeResponse()
-}
-
-class HttpRequest {
-    +method
-    +target
-    +version
-    +headers
-    +body
-}
-
-class HttpResponse {
-    +status
-    +version
-    +headers
-    +body
-    +toString()
-}
-
-class StaticFileHandler {
-    -public_dir_
-    +handle(request)
-}
-
-class TaskApiHandler {
-    -service_
-    +handle(request)
-}
-
-class TaskService {
-    -repository_
-    -scheduler_
-    +create(input)
-    +findAll()
-    +findById(id)
-    +update(id, input)
-    +remove(id)
-    +runNow(id)
-}
-
-class TaskRepository {
-    -database_
-    -mutex_
-    +create(input)
-    +findAll()
-    +findScheduled()
-    +update(id, input)
-    +remove(id)
-    +claimForExecution(id)
-    +setStatus(id, status)
-}
-
-class TaskScheduler {
-    -strand_
-    -repository_
-    -timers_
-    +restore()
-    +schedule(task)
-    +cancel(id)
-    +runNow(task)
-    -executeTask(id)
-}
-
-class Task {
-    +id
-    +title
-    +description
-    +scheduled_at_ms
-    +status
-    +error_message
-    +created_at_ms
-    +updated_at_ms
-}
-
-enum TaskStatus {
-    scheduled
-    running
-    completed
-    failed
-}
-
-database SQLite
-folder "public/" as PublicFiles
-
-ApplicationMain --> WebServer : creates
-ApplicationMain --> TaskRepository : creates
-ApplicationMain --> TaskScheduler : creates
-ApplicationMain --> TaskService : creates
-ApplicationMain --> TaskApiHandler : creates
-ApplicationMain --> StaticFileHandler : creates
+ApplicationMain -right-> WebServer : creates
+ApplicationMain -right-> TaskApiHandler : creates
+ApplicationMain -right-> StaticFileHandler : creates
+ApplicationMain -right-> ApplicationMetrics : creates
+ApplicationMain -right-> TaskService : creates
+ApplicationMain -right-> TaskScheduler : creates
+ApplicationMain -right-> TaskRepository : creates
 
 WebServer <|.. HttpWebServer
 WebServer <|.. HttpsWebServer
-HttpWebServer *-- HttpSession : creates
-HttpsWebServer *-- HttpsSession : creates
-
-HttpSession ..> HttpRequest : parses
-HttpsSession ..> HttpRequest : parses
-HttpSession ..> HttpResponse : writes
-HttpsSession ..> HttpResponse : writes
-
-HttpSession ..> TaskApiHandler : callback
-HttpsSession ..> TaskApiHandler : callback
-HttpSession ..> StaticFileHandler : callback
-HttpsSession ..> StaticFileHandler : callback
+HttpWebServer --> HttpSession : accepts
+HttpsWebServer --> HttpsSession : accepts
+HttpSessionBase <|-- HttpSession
+HttpSessionBase <|-- HttpsSession
+HttpSessionBase ..> HttpRequest : parses
+HttpSessionBase ..> HttpResponse : writes
+HttpSessionBase ..> TaskApiHandler : request callback
+HttpSessionBase ..> StaticFileHandler : request callback
 
 TaskApiHandler --> TaskService
+TaskApiHandler ..> HttpResponse : JSON response
+StaticFileHandler --> PublicFiles
+StaticFileHandler ..> HttpResponse : file response
+
 TaskService --> TaskRepository
 TaskService --> TaskScheduler
+TaskService ..> TaskInput
 TaskScheduler --> TaskRepository
+TaskScheduler ..> TaskSchedulerMetrics
+TaskRepository --> SQLite
 TaskRepository --> Task
 Task --> TaskStatus
-TaskRepository --> SQLite
-StaticFileHandler --> PublicFiles
+ApplicationMetrics ..> TaskSchedulerMetrics
+
 @enduml

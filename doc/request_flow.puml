@@ -18,11 +18,22 @@ else (no)
     :HttpSession starts plain TCP session;
 endif
 
-:Session reads bytes from socket;
-:Parse request line, headers and body;
-:Create HttpRequest;
+:HttpSessionBase::processRequests();
+:Session reads request with Beast parser;
+:Apply request body limit;
+:Create server::HttpRequest;
+:makeHandlerWithException records request metric;
+:Strip query string for top-level routing;
 
-if (target starts with /api/) then (API request)
+if (target == /metrics?) then (metrics)
+    if (method == GET?) then (yes)
+        :Collect ApplicationMetrics;
+        :Collect TaskScheduler metrics;
+        :Build Prometheus text response;
+    else (no)
+        :Build 405 Method Not Allowed response;
+    endif
+elseif (target starts with /api/?) then (API request)
     :TaskApiHandler parses route;
 
     if (GET /api/tasks?) then (yes)
@@ -35,6 +46,10 @@ if (target starts with /api/) then (API request)
         :TaskRepository inserts task into SQLite;
         :TaskScheduler schedules timer;
         :Build JSON created response;
+    elseif (GET /api/tasks/{id}?) then (yes)
+        :TaskService.findById(id);
+        :TaskRepository reads task from SQLite;
+        :Build JSON item response;
     elseif (PUT /api/tasks/{id}?) then (yes)
         :Parse JSON body to TaskInput;
         :TaskService.update(id, input);
@@ -45,21 +60,34 @@ if (target starts with /api/) then (API request)
         :TaskService.remove(id);
         :TaskRepository deletes task from SQLite;
         :TaskScheduler cancels timer;
-        :Build empty response;
-    else (other API route)
+        :Build 204 No Content response;
+    elseif (POST /api/tasks/{id}/run?) then (yes)
+        :TaskService.runNow(id);
+        :TaskScheduler starts task immediately;
+        :Build JSON item response;
+    else (unknown API route or method)
         :Build 404 or 405 response;
     endif
 else (static file request)
+    :StaticFileHandler removes query string;
     :StaticFileHandler resolves path in public/;
-    if (file exists?) then (yes)
+    if (file exists and target is valid?) then (yes)
         :Read index.html / styles.css / app.js;
-        :Build file response;
+        :Build file response with content type;
     else (no)
         :Build 404 response;
     endif
 endif
 
-:Session writes HttpResponse to socket;
+if (handler exception?) then (yes)
+    :Record exception metric;
+    :Build 500 Internal Server Error response;
+else (no)
+    :Record response status metric;
+endif
+
+:Convert server::HttpResponse to Beast response;
+:Session writes response to socket;
 :Browser receives response;
 stop
 
