@@ -3,11 +3,13 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 
+#include "common/Logger.hpp"
+
 #include <boost/asio.hpp>
 #include <boost/asio/awaitable.hpp>
 
-#include <iostream>
 #include <functional>
+#include <sstream>
 
 namespace server
 {
@@ -32,18 +34,16 @@ inline void handleSessionCompletion(std::exception_ptr exception)
     }
     catch (const std::exception &error)
     {
-        std::cerr
-            << "[session] unhandled coroutine exception: "
-            << error.what()
-            << '\n';
+        std::ostringstream message;
+        message << "[session] unhandled coroutine exception: " << error.what();
+        common::logError(message.str());
     }
     catch (...)
     {
-        std::cerr
-            << "[session] unhandled unknown coroutine exception\n";
+        common::logError("[session] unhandled unknown coroutine exception");
     }
 }
 
 //------------------------------------------------------------------------------
 
-}
+} // namespace server

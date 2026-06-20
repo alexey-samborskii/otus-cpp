@@ -7,11 +7,10 @@
 
 namespace server
 {
-    
+
 //------------------------------------------------------------------------------
 
-StaticFileHandler::StaticFileHandler(
-    std::filesystem::path public_dir)
+StaticFileHandler::StaticFileHandler(std::filesystem::path public_dir)
     : public_dir_(std::move(public_dir))
 {
 }

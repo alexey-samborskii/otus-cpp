@@ -51,13 +51,29 @@
                         ></textarea>
 
                         <label for="task-scheduled-at">Дата и время выполнения</label>
-                        <input
-                            id="task-scheduled-at"
-                            name="task-scheduled-at"
-                            type="datetime-local"
-                            autocomplete="off"
-                            required
-                        >
+                        <div class="datetime-row">
+                            <input
+                                id="task-scheduled-at"
+                                name="task-scheduled-at"
+                                type="datetime-local"
+                                step="60"
+                                autocomplete="off"
+                                required
+                            >
+
+                            <input
+                                id="task-scheduled-second"
+                                name="task-scheduled-second"
+                                class="seconds-input"
+                                type="number"
+                                min="0"
+                                max="59"
+                                step="1"
+                                value="0"
+                                autocomplete="off"
+                                required
+                            >
+                        </div>
 
                         <div class="actions">
                             <button id="submit-button" class="button button-primary" type="submit">

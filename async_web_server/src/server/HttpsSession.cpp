@@ -1,25 +1,20 @@
 #include "server/HttpsSession.hpp"
 
-#include "server/HttpRequest.hpp"
-#include "server/HttpResponse.hpp"
+#include "common/Logger.hpp"
 
 #include <boost/asio/redirect_error.hpp>
 #include <boost/asio/ssl/error.hpp>
 #include <boost/beast/core/error.hpp>
-#include <boost/beast/http.hpp>
 #include <boost/system/system_error.hpp>
 
 #include <chrono>
-#include <iostream>
+#include <sstream>
 #include <stdexcept>
-#include <string>
 #include <utility>
-#include <stdexcept>
 
 namespace net   = boost::asio;
 namespace ssl   = boost::asio::ssl;
 namespace beast = boost::beast;
-namespace http  = boost::beast::http;
 
 namespace server
 {
@@ -27,20 +22,13 @@ namespace server
 namespace
 {
 
-using BeastRequest  = http::request<http::string_body>;
-using BeastResponse = http::response<http::string_body>;
-
-constexpr std::chrono::minutes kSessionTimeout{1};
-
 //------------------------------------------------------------------------------
 
-ssl::context &requireSslContext(
-    const HttpsSession::SslContextPtr &ssl_context)
+ssl::context &requireSslContext(const HttpsSession::SslContextPtr &ssl_context)
 {
     if (!ssl_context)
     {
-        throw std::invalid_argument(
-            "SSL context must not be null");
+        throw std::invalid_argument("SSL context must not be null");
     }
 
     return *ssl_context;
@@ -48,50 +36,21 @@ ssl::context &requireSslContext(
 
 //------------------------------------------------------------------------------
 
-HttpRequest makeHttpRequest(BeastRequest &&request)
+void logHttpsSystemError(
+    const boost::system::system_error &error)
 {
-    HttpRequest result;
-
-    result.method       = std::string(request.method_string());
-    result.target       = std::string(request.target());
-    result.body         = std::move(request.body());
-    result.content_type = std::string(
-        request[http::field::content_type]);
-    result.keep_alive = request.keep_alive();
-    result.version    = request.version();
-
-    return result;
-}
-
-//------------------------------------------------------------------------------
-
-BeastResponse makeBeastResponse(const HttpResponse &response)
-{
-    BeastResponse result{
-        static_cast<http::status>(response.status),
-        response.version};
-
-    result.set(
-        http::field::server,
-        "async_task_web_server");
-
-    if (!response.content_type.empty())
+    if (error.code() == beast::error::timeout ||
+        error.code() == net::error::operation_aborted ||
+        error.code() == ssl::error::stream_truncated)
     {
-        result.set(
-            http::field::content_type,
-            response.content_type);
+        return;
     }
 
-    for (const auto &[name, value] : response.headers)
-    {
-        result.set(name, value);
-    }
+    std::ostringstream message;
 
-    result.keep_alive(response.keep_alive);
-    result.body() = response.body;
-    result.prepare_payload();
+    message << "[https session] error: " << error.what();
 
-    return result;
+    common::logError(message.str());
 }
 
 } // namespace
@@ -102,15 +61,10 @@ HttpsSession::HttpsSession(
     tcp::socket           socket,
     SslContextPtr         ssl_context,
     CallbackHandleRequest request_handler_cb)
-    : ssl_context_(std::move(ssl_context))
+    : HttpSessionBase(std::move(request_handler_cb))
+    , ssl_context_(std::move(ssl_context))
     , stream_(std::move(socket), requireSslContext(ssl_context_))
-    , request_handler_cb_(std::move(request_handler_cb))
 {
-    if (!request_handler_cb_)
-    {
-        throw std::invalid_argument(
-            "HTTP request handler must not be null");
-    }
 }
 
 //------------------------------------------------------------------------------
@@ -121,7 +75,7 @@ net::awaitable<void> HttpsSession::run()
 
     try
     {
-        transport.expires_after(kSessionTimeout);
+        transport.expires_after(std::chrono::minutes{1});
 
         co_await stream_.async_handshake(
             ssl::stream_base::server,
@@ -129,50 +83,15 @@ net::awaitable<void> HttpsSession::run()
 
         transport.expires_never();
 
-        for (;;)
-        {
-            BeastRequest beast_request;
-
-            transport.expires_after(kSessionTimeout);
-
-            co_await http::async_read(
-                stream_,
-                buffer_,
-                beast_request,
-                net::use_awaitable);
-
-            transport.expires_never();
-
-            auto request =
-                makeHttpRequest(std::move(beast_request));
-
-            auto response =
-                co_await request_handler_cb_(std::move(request));
-
-            auto beast_response =
-                makeBeastResponse(response);
-
-            const bool keep_alive =
-                beast_response.keep_alive();
-
-            transport.expires_after(kSessionTimeout);
-
-            co_await http::async_write(
-                stream_,
-                beast_response,
-                net::use_awaitable);
-
-            transport.expires_never();
-
-            if (!keep_alive)
-            {
-                break;
-            }
-        }
+        co_await processRequests(
+            stream_,
+            transport,
+            "[https session]",
+            true);
 
         boost::system::error_code shutdown_error;
 
-        transport.expires_after(kSessionTimeout);
+        transport.expires_after(std::chrono::minutes{1});
 
         co_await stream_.async_shutdown(
             net::redirect_error(
@@ -190,24 +109,29 @@ net::awaitable<void> HttpsSession::run()
 
         if (shutdown_error)
         {
-            std::cerr
-                << "[https session] shutdown error: "
-                << shutdown_error.message()
-                << '\n';
+            std::ostringstream message;
+
+            message << "[https session] shutdown error: "
+                    << shutdown_error.message();
+
+            common::logError(message.str());
         }
     }
     catch (const boost::system::system_error &error)
     {
-        if (error.code() != beast::error::timeout &&
-            error.code() != http::error::end_of_stream &&
-            error.code() != net::error::operation_aborted &&
-            error.code() != ssl::error::stream_truncated)
-        {
-            std::cerr
-                << "[https session] error: "
-                << error.what()
-                << '\n';
-        }
+        logHttpsSystemError(error);
+    }
+    catch (const std::exception &error)
+    {
+        std::ostringstream message;
+
+        message << "[https session] exception: " << error.what();
+
+        common::logError(message.str());
+    }
+    catch (...)
+    {
+        common::logError("[https session] unknown exception");
     }
 
     boost::system::error_code close_error;

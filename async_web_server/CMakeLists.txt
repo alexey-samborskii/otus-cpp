@@ -1,6 +1,7 @@
 add_library(async_web_server STATIC 
     src/server/HttpResponse.cpp 
     src/server/HttpSession.cpp 
+    src/server/HttpSessionBase.cpp 
     src/server/HttpsSession.cpp 
     src/server/HttpWebServer.cpp 
     src/server/HttpsWebServer.cpp 
@@ -42,4 +43,6 @@ target_link_libraries(async_web_server
     PUBLIC
         Boost::headers
         OpenSSL::SSL
-        Threads::Threads)
+        Threads::Threads
+    PRIVATE
+        common::common)

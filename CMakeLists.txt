@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 OLD)
+endif()
+
 set(PROJECT_VERSION_MAJOR 0)
 set(PROJECT_VERSION_MINOR 0)
 set(PROJECT_VERSION_PATCH 1)
@@ -25,9 +29,10 @@ find_package(Threads REQUIRED)
 
 include(GNUInstallDirs)
 
-add_subdirectory(app)
+add_subdirectory(common)
 add_subdirectory(async_web_server)
 add_subdirectory(task_system)
+add_subdirectory(app)
 
 include(CTest)
 

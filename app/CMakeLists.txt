@@ -56,17 +56,25 @@ target_compile_options(async_task_web_server
 target_link_libraries(async_task_web_server
     PRIVATE
         async_web_server::async_web_server
+        common::common
         task_system::task_system)
 
 add_custom_command(
     TARGET async_task_web_server
     POST_BUILD
-    COMMAND
-        ${CMAKE_COMMAND} -E copy_directory
-        "${PROJECT_SOURCE_DIR}/public"
-        "$<TARGET_FILE_DIR:async_task_web_server>/public"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${PROJECT_SOURCE_DIR}/public"
+            "$<TARGET_FILE_DIR:async_task_web_server>/public"
     COMMENT
         "Copying web interface to the binary directory")
+
+add_custom_command(
+    TARGET async_task_web_server
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${PROJECT_SOURCE_DIR}/config
+            $<TARGET_FILE_DIR:async_task_web_server>
+)
 
 install(
     TARGETS async_task_web_server
@@ -78,3 +86,8 @@ install(
         "${PROJECT_SOURCE_DIR}/public/"
     DESTINATION
         "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/public")
+
+install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/config/
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
+)

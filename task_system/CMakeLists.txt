@@ -30,6 +30,7 @@ target_link_libraries(task_system
     PUBLIC
         Threads::Threads
     PRIVATE
+        common::common
         SQLite::SQLite3)
 
 set_target_properties(task_system

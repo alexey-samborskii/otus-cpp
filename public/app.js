@@ -6,6 +6,7 @@ const taskId = $("task-id");
 const title = $("task-title");
 const description = $("task-description");
 const scheduledAt = $("task-scheduled-at");
+const scheduledSecond = $("task-scheduled-second");
 const formTitle = $("form-title");
 const submitButton = $("submit-button");
 const cancelEditButton = $("cancel-edit-button");
@@ -55,12 +56,20 @@ async function apiRequest(url, options = {}) {
 
 //------------------------------------------------------------------------------
 
-function toTimestampMs(value) {
+function toTimestampMs(value, secondValue) {
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
         return null;
     }
+
+    const seconds = Number(secondValue);
+
+    if (!Number.isInteger(seconds) || seconds < 0 || seconds > 59) {
+        return null;
+    }
+
+    date.setSeconds(seconds, 0);
 
     return date.getTime();
 }
@@ -86,6 +95,22 @@ function toDateTimeLocalValue(value) {
 
 //------------------------------------------------------------------------------
 
+function toSecondValue(value) {
+    if (!value) {
+        return "0";
+    }
+
+    const date = new Date(Number(value));
+
+    if (Number.isNaN(date.getTime())) {
+        return "0";
+    }
+
+    return String(date.getSeconds());
+}
+
+//------------------------------------------------------------------------------
+
 function formatDateTime(value) {
     if (!value) {
         return "Не указано";
@@ -97,7 +122,14 @@ function formatDateTime(value) {
         return String(value);
     }
 
-    return date.toLocaleString("ru-RU");
+    return date.toLocaleString("ru-RU", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
 }
 
 //------------------------------------------------------------------------------
@@ -127,6 +159,7 @@ function formatStatus(status) {
 function resetForm() {
     form.reset();
     taskId.value = "";
+    scheduledSecond.value = "0";
 
     formTitle.textContent = "Создать задачу";
     submitButton.textContent = "Создать задачу";
@@ -142,6 +175,7 @@ function startEdit(task) {
     title.value = task.title || "";
     description.value = task.description || "";
     scheduledAt.value = toDateTimeLocalValue(task.scheduledAt);
+    scheduledSecond.value = toSecondValue(task.scheduledAt);
 
     formTitle.textContent = "Изменить задачу";
     submitButton.textContent = "Сохранить изменения";
@@ -161,8 +195,10 @@ function renderTasks() {
         const node = taskTemplate.content.cloneNode(true);
 
         node.querySelector(".task-id").textContent = `ID: ${task.id}`;
-        node.querySelector(".task-title").textContent = task.title || "Без названия";
-        node.querySelector(".task-description").textContent = task.description || "";
+        node.querySelector(".task-title").textContent =
+            task.title || "Без названия";
+        node.querySelector(".task-description").textContent =
+            task.description || "";
         node.querySelector(".task-scheduled-at").textContent =
             formatDateTime(task.scheduledAt);
 
@@ -183,9 +219,11 @@ function renderTasks() {
             startEdit(task);
         });
 
-        node.querySelector(".delete-button").addEventListener("click", async () => {
-            await deleteTask(task.id);
-        });
+        node.querySelector(".delete-button").addEventListener(
+            "click",
+            async () => {
+                await deleteTask(task.id);
+            });
 
         tasksList.appendChild(node);
     }
@@ -237,7 +275,9 @@ form.addEventListener("submit", async (event) => {
     const payload = {
         title: title.value.trim(),
         description: description.value.trim(),
-        scheduledAt: toTimestampMs(scheduledAt.value)
+        scheduledAt: toTimestampMs(
+            scheduledAt.value,
+            scheduledSecond.value)
     };
 
     if (!payload.title) {
@@ -246,7 +286,7 @@ form.addEventListener("submit", async (event) => {
     }
 
     if (payload.scheduledAt === null) {
-        showMessage("Укажите дату и время выполнения.", true);
+        showMessage("Укажите дату, время и секунды выполнения.", true);
         return;
     }
 

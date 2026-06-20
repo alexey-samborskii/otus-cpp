@@ -2,10 +2,12 @@
 
 #include "server/HttpsSession.hpp"
 
+#include "common/Logger.hpp"
+
 #include <boost/system/system_error.hpp>
 
-#include <iostream>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -69,9 +71,8 @@ net::awaitable<void> HttpsWebServer::acceptLoop()
     {
         for (;;)
         {
-            tcp::socket socket =
-                co_await acceptor_.async_accept(
-                    net::use_awaitable);
+            tcp::socket socket = co_await acceptor_.async_accept(
+                net::use_awaitable);
 
             auto session = std::make_shared<HttpsSession>(
                 std::move(socket),
@@ -93,22 +94,19 @@ net::awaitable<void> HttpsWebServer::acceptLoop()
             co_return;
         }
 
-        std::cerr
-            << "[https server] accept error: "
-            << error.what()
-            << '\n';
+        std::ostringstream message;
+        message << "[https server] accept error: " << error.what();
+        common::logError(message.str());
     }
     catch (const std::exception &error)
     {
-        std::cerr
-            << "[https server] unexpected exception: "
-            << error.what()
-            << '\n';
+        std::ostringstream message;
+        message << "[https server] unexpected exception: " << error.what();
+        common::logError(message.str());
     }
     catch (...)
     {
-        std::cerr
-            << "[https server] unknown exception\n";
+        common::logError("[https server] unknown exception");
     }
 
     co_return;
@@ -119,8 +117,9 @@ net::awaitable<void> HttpsWebServer::acceptLoop()
 void HttpsWebServer::stop()
 {
     boost::system::error_code error;
-
     acceptor_.close(error);
 }
+
+//------------------------------------------------------------------------------
 
 } // namespace server

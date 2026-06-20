@@ -124,6 +124,23 @@ textarea {
     color: #f5f5f5;
 }
 
+.datetime-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.datetime-row input[type="datetime-local"] {
+    flex: 1;
+    min-width: 0;
+}
+
+.seconds-input {
+    flex: 0 0 72px;
+    width: 72px;
+    text-align: center;
+}
+
 textarea {
     resize: vertical;
 }

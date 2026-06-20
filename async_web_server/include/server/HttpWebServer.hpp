@@ -12,6 +12,8 @@
 namespace server
 {
 
+//------------------------------------------------------------------------------
+
 class HttpWebServer final : public WebServer
 {
 public:
@@ -22,12 +24,14 @@ public:
         const tcp::endpoint     &endpoint,
         CallbackHandleRequest    request_handler_cb);
 
-    boost::asio::awaitable<void> acceptLoop() override;
-    void                         stop() override;
+    auto acceptLoop() -> boost::asio::awaitable<void> override;
+    void stop() override;
 
 private:
     tcp::acceptor         acceptor_;
     CallbackHandleRequest request_handler_cb_;
 };
+
+//------------------------------------------------------------------------------
 
 } // namespace server

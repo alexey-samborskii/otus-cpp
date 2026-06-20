@@ -1,13 +1,14 @@
 add_executable(async_web_server_tests
-  HttpResponseTests.cpp
-  HttpRequestHandlerTests.cpp
-)
+    HttpResponseTests.cpp
+    HttpRequestHandlerTests.cpp
+    TaskSchedulerTests.cpp)
 
 target_link_libraries(async_web_server_tests
-  PRIVATE
-    async_web_server::async_web_server
-    GTest::gtest_main
-)
+    PRIVATE
+        async_web_server::async_web_server
+        common::common
+        task_system::task_system
+        GTest::gtest_main)
 
 include(GoogleTest)
 

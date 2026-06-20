@@ -1,13 +1,14 @@
 #include "tasks/TaskScheduler.hpp"
 
+#include "common/Logger.hpp"
 #include "tasks/TaskRepository.hpp"
 
 #include <boost/system/error_code.hpp>
 
 #include <chrono>
 #include <exception>
-#include <iostream>
 #include <memory>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -16,12 +17,20 @@ namespace net = boost::asio;
 namespace tasks
 {
 
-TaskScheduler::TaskScheduler(
-    net::any_io_executor executor,
-    TaskRepository      &repository)
+//------------------------------------------------------------------------------
+
+TaskScheduler::TaskScheduler(net::any_io_executor executor,
+                             TaskRepository      &repository)
     : strand_(net::make_strand(std::move(executor)))
     , repository_(repository)
 {
+}
+
+//------------------------------------------------------------------------------
+
+TaskScheduler::~TaskScheduler()
+{
+    cancelAllImpl();
 }
 
 //------------------------------------------------------------------------------
@@ -65,6 +74,21 @@ net::awaitable<void> TaskScheduler::runNow(Task task)
 
 //------------------------------------------------------------------------------
 
+TaskSchedulerMetrics TaskScheduler::metrics() const
+{
+    TaskSchedulerMetrics result;
+
+    result.scheduled_tasks = scheduled_tasks_.load(std::memory_order_relaxed);
+    result.cancelled_tasks = cancelled_tasks_.load(std::memory_order_relaxed);
+    result.completed_tasks = completed_tasks_.load(std::memory_order_relaxed);
+    result.failed_tasks    = failed_tasks_.load(std::memory_order_relaxed);
+    result.timer_errors    = timer_errors_.load(std::memory_order_relaxed);
+
+    return result;
+}
+
+//------------------------------------------------------------------------------
+
 void TaskScheduler::scheduleImpl(Task task)
 {
     cancelImpl(task.id);
@@ -76,6 +100,14 @@ void TaskScheduler::scheduleImpl(Task task)
     const TaskId id    = task.id;
 
     timers_[id] = timer;
+    scheduled_tasks_.fetch_add(1, std::memory_order_relaxed);
+
+    {
+        std::ostringstream message;
+        message << "[scheduler] task " << id
+                << " scheduled at " << task.scheduled_at_ms;
+        common::logInfo(message.str());
+    }
 
     std::weak_ptr<TaskScheduler> weak_self = shared_from_this();
 
@@ -105,11 +137,14 @@ void TaskScheduler::scheduleImpl(Task task)
 
             if (error)
             {
-                std::cerr << "[scheduler] timer error for task "
-                          << id
-                          << ": "
-                          << error.message()
-                          << '\n';
+                self->timer_errors_.fetch_add(1, std::memory_order_relaxed);
+
+                std::ostringstream message;
+                message << "[scheduler] timer error for task "
+                        << id
+                        << ": "
+                        << error.message();
+                common::logError(message.str());
                 return;
             }
 
@@ -136,10 +171,45 @@ void TaskScheduler::cancelImpl(TaskId id)
     const std::shared_ptr<Timer> timer = iterator->second;
 
     timers_.erase(iterator);
+    cancelled_tasks_.fetch_add(1, std::memory_order_relaxed);
 
     boost::system::error_code error;
 
     timer->cancel(error);
+
+    if (error)
+    {
+        std::ostringstream message;
+        message << "[scheduler] unable to cancel timer for task "
+                << id
+                << ": "
+                << error.message();
+        common::logError(message.str());
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void TaskScheduler::cancelAllImpl()
+{
+    for (const auto &[id, timer] : timers_)
+    {
+        boost::system::error_code error;
+
+        timer->cancel(error);
+
+        if (error)
+        {
+            std::ostringstream message;
+            message << "[scheduler] unable to cancel timer for task "
+                    << id
+                    << ": "
+                    << error.message();
+            common::logError(message.str());
+        }
+    }
+
+    timers_.clear();
 }
 
 //------------------------------------------------------------------------------
@@ -160,11 +230,14 @@ net::awaitable<void> TaskScheduler::executeTask(TaskId id)
             co_return;
         }
 
-        std::cout << "[scheduler] executing task "
-                  << task->id
-                  << ": "
-                  << task->title
-                  << '\n';
+        {
+            std::ostringstream message;
+            message << "[scheduler] executing task "
+                    << task->id
+                    << ": "
+                    << task->title;
+            common::logInfo(message.str());
+        }
 
         net::steady_timer execution_delay(strand_);
 
@@ -173,13 +246,18 @@ net::awaitable<void> TaskScheduler::executeTask(TaskId id)
         co_await execution_delay.async_wait(net::use_awaitable);
 
         repository_.setStatus(id, TaskStatus::kCompleted);
+        completed_tasks_.fetch_add(1, std::memory_order_relaxed);
 
-        std::cout << "[scheduler] task "
-                  << id
-                  << " completed\n";
+        {
+            std::ostringstream message;
+            message << "[scheduler] task " << id << " completed";
+            common::logInfo(message.str());
+        }
     }
     catch (const std::exception &error)
     {
+        failed_tasks_.fetch_add(1, std::memory_order_relaxed);
+
         try
         {
             repository_.setStatus(
@@ -189,19 +267,23 @@ net::awaitable<void> TaskScheduler::executeTask(TaskId id)
         }
         catch (const std::exception &status_error)
         {
-            std::cerr << "[scheduler] unable to mark task "
-                      << id
-                      << " as failed: "
-                      << status_error.what()
-                      << '\n';
+            std::ostringstream message;
+            message << "[scheduler] unable to mark task "
+                    << id
+                    << " as failed: "
+                    << status_error.what();
+            common::logError(message.str());
         }
 
-        std::cerr << "[scheduler] task "
-                  << id
-                  << " failed: "
-                  << error.what()
-                  << '\n';
+        std::ostringstream message;
+        message << "[scheduler] task "
+                << id
+                << " failed: "
+                << error.what();
+        common::logError(message.str());
     }
 }
+
+//------------------------------------------------------------------------------
 
 } // namespace tasks

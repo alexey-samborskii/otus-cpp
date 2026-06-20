@@ -2,11 +2,13 @@
 
 #include "server/HttpSession.hpp"
 
+#include "common/Logger.hpp"
+
 #include <boost/system/system_error.hpp>
 
 #include <exception>
-#include <iostream>
 #include <memory>
+#include <sstream>
 #include <utility>
 
 namespace net = boost::asio;
@@ -82,22 +84,19 @@ net::awaitable<void> HttpWebServer::acceptLoop()
             co_return;
         }
 
-        std::cerr
-            << "[http server] accept error: "
-            << error.what()
-            << '\n';
+        std::ostringstream message;
+        message << "[http server] accept error: " << error.what();
+        common::logError(message.str());
     }
     catch (const std::exception &error)
     {
-        std::cerr
-            << "[http server] unexpected exception: "
-            << error.what()
-            << '\n';
+        std::ostringstream message;
+        message << "[http server] unexpected exception: " << error.what();
+        common::logError(message.str());
     }
     catch (...)
     {
-        std::cerr
-            << "[http server] unknown exception\n";
+        common::logError("[http server] unknown exception");
     }
 
     co_return;
@@ -108,7 +107,6 @@ net::awaitable<void> HttpWebServer::acceptLoop()
 void HttpWebServer::stop()
 {
     boost::system::error_code error;
-
     acceptor_.close(error);
 }
 

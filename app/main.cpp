@@ -1,6 +1,8 @@
 #include "AppConfig.hpp"
+#include "ApplicationMetrics.hpp"
 #include "TaskApiHandler.hpp"
 
+#include "common/Logger.hpp"
 #include "server/common.hpp"
 #include "server/HttpWebServer.hpp"
 #include "server/HttpsWebServer.hpp"
@@ -13,7 +15,11 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
+#include <algorithm>
+#include <cctype>
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
@@ -21,7 +27,10 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <memory>
+#include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -30,10 +39,16 @@
 #include <vector>
 
 namespace net = boost::asio;
+namespace pt  = boost::property_tree;
 namespace ssl = boost::asio::ssl;
 
 namespace
 {
+
+using WebServerPtr          = std::shared_ptr<server::WebServer>;
+using TaskSchedulerPtr      = std::shared_ptr<tasks::TaskScheduler>;
+using TaskServicePtr        = std::shared_ptr<tasks::TaskService>;
+using ApplicationMetricsPtr = std::shared_ptr<application::ApplicationMetrics>;
 
 enum class ServerProtocol
 {
@@ -41,56 +56,50 @@ enum class ServerProtocol
     kHttps = 1
 };
 
-//------------------------------------------------------------------------------
-
 struct ProgramOptions
 {
-    ServerProtocol        protocol = ServerProtocol::kHttps;
-    std::string           host     = "0.0.0.0";
-    std::uint16_t         port     = 8443;
-    bool                  port_set = false;
-    std::size_t           threads  = 4;
-    std::filesystem::path public_dir;
-    bool                  public_dir_set   = false;
+    ServerProtocol        protocol         = ServerProtocol::kHttps;
+    std::string           host             = "0.0.0.0";
+    std::uint16_t         port             = 8443;
+    bool                  port_set         = false;
+    std::size_t           threads          = 4;
     std::filesystem::path database_file    = "data/tasks.db";
     std::filesystem::path certificate_file = "certs/server.crt";
     std::filesystem::path private_key_file = "certs/server.key";
+    std::string           log_level        = "info";
+    bool                  public_dir_set   = false;
+    std::filesystem::path public_dir;
+    std::filesystem::path config_file;
 };
-
-using HttpRequestHandlerPtr = std::shared_ptr<server::HttpRequestHandler>;
-using WebServerPtr          = std::shared_ptr<server::WebServer>;
 
 //------------------------------------------------------------------------------
 
 void printUsage(const char *program_name)
 {
     std::cout
-        << "Usage: " << program_name << " [config]\n\n"
+        << "Usage: " << program_name << " [--config <path>] [options]\n\n"
         << "Options:\n"
-        << "  --protocol <http|https>  Server protocol, default: https\n"
-        << "  --host <address>         Bind address, default: 0.0.0.0\n"
-        << "  --port <number>          Bind port, default: 8080/8443\n"
-        << "  --threads <number>       io_context worker threads, default: 4\n"
-        << "  --public-dir <path>      Web interface directory\n"
-        << "                           Default: automatic detection\n"
-        << "  --database <path>        SQLite database file\n"
-        << "  --cert <path>            TLS certificate file\n"
-        << "  --key <path>             TLS private key file\n"
-        << "  --help                   Show this help\n";
+        << "  --config <path>         JSON configuration file\n"
+        << "  --protocol <http|https> Server protocol, default: https\n"
+        << "  --host <address>        Bind address, default: 0.0.0.0\n"
+        << "  --port <number>         Bind port, default: 8080/8443\n"
+        << "  --threads <number>      io_context worker threads, default: 4\n"
+        << "  --public-dir <path>     Web interface directory\n"
+        << "                          Default: automatic detection\n"
+        << "  --database <path>       SQLite database file\n"
+        << "  --cert <path>           TLS certificate file\n"
+        << "  --key <path>            TLS private key file\n"
+        << "  --log-level <level>     debug, info, warning, error\n"
+        << "  --help                  Show this help\n";
 }
 
 //------------------------------------------------------------------------------
 
-std::string requireValue(
-    int         argc,
-    char       *argv[],
-    int        &index,
-    const char *option_name)
+std::string requireValue(int argc, char *argv[], int &index, const char *name)
 {
     if (index + 1 >= argc)
     {
-        throw std::invalid_argument(
-            std::string("Missing value for ") + option_name);
+        throw std::invalid_argument(std::string("Missing value for ") + name);
     }
 
     ++index;
@@ -100,151 +109,252 @@ std::string requireValue(
 
 //------------------------------------------------------------------------------
 
-std::uint16_t parsePort(const std::string &value)
+std::string normalizeConfigKey(std::string value)
 {
-    std::size_t parsed_characters = 0;
+    std::replace(value.begin(), value.end(), '-', '_');
 
-    const unsigned long parsed = std::stoul(value, &parsed_characters);
+    return value;
+}
 
-    if (parsed_characters != value.size())
+//------------------------------------------------------------------------------
+
+bool containsOnlyDigits(const std::string &value)
+{
+    return !value.empty() &&
+           std::all_of(
+               value.begin(),
+               value.end(),
+               [](unsigned char character) {
+                   return std::isdigit(character);
+               });
+}
+
+//------------------------------------------------------------------------------
+
+auto parsePort(const std::string &value) -> std::uint16_t
+{
+    if (!containsOnlyDigits(value))
     {
         throw std::invalid_argument("Port must contain only digits");
     }
 
-    if (parsed == 0 || parsed > 65535)
+    try
+    {
+        std::size_t parsed_characters = 0;
+
+        const unsigned long parsed = std::stoul(value, &parsed_characters);
+
+        if (parsed_characters != value.size())
+        {
+            throw std::invalid_argument("Port must contain only digits");
+        }
+
+        if (parsed == 0 || parsed > 65535)
+        {
+            throw std::invalid_argument("Port must be in range 1..65535");
+        }
+
+        return static_cast<std::uint16_t>(parsed);
+    }
+    catch (const std::out_of_range &)
     {
         throw std::invalid_argument("Port must be in range 1..65535");
     }
-
-    return static_cast<std::uint16_t>(parsed);
 }
 
 //------------------------------------------------------------------------------
 
-std::size_t parseThreadCount(const std::string &value)
+auto parseThreadCount(const std::string &value) -> std::size_t
 {
-    std::size_t parsed_characters = 0;
-
-    const unsigned long parsed = std::stoul(
-        value,
-        &parsed_characters);
-
-    if (parsed_characters != value.size())
+    if (!containsOnlyDigits(value))
     {
         throw std::invalid_argument("Thread count must contain only digits");
     }
 
-    if (parsed == 0)
+    try
     {
-        throw std::invalid_argument("Thread count must be greater than zero");
-    }
+        std::size_t parsed_characters = 0;
 
-    return static_cast<std::size_t>(parsed);
+        const unsigned long parsed = std::stoul(value, &parsed_characters);
+
+        if (parsed_characters != value.size())
+        {
+            throw std::invalid_argument("Thread count must contain only digits");
+        }
+
+        if (parsed == 0)
+        {
+            throw std::invalid_argument("Thread count must be greater zero");
+        }
+
+        if (parsed > std::numeric_limits<std::size_t>::max())
+        {
+            throw std::invalid_argument("Thread count is too large");
+        }
+
+        return static_cast<std::size_t>(parsed);
+    }
+    catch (const std::out_of_range &)
+    {
+        throw std::invalid_argument("Thread count is too large");
+    }
 }
 
 //------------------------------------------------------------------------------
 
-ProgramOptions parseProgramOptions(
-    int   argc,
-    char *argv[])
+ServerProtocol parseProtocol(const std::string &value)
 {
-    ProgramOptions config;
-
-    for (int index = 1; index < argc; ++index)
+    if (value == "http")
     {
-        const std::string argument = argv[index];
-
-        if (argument == "--help")
-        {
-            printUsage(argv[0]);
-            std::exit(EXIT_SUCCESS);
-        }
-
-        if (argument == "--protocol")
-        {
-            const std::string value =
-                requireValue(argc, argv, index, "--protocol");
-
-            if (value == "http")
-            {
-                config.protocol = ServerProtocol::kHttp;
-            }
-            else if (value == "https")
-            {
-                config.protocol = ServerProtocol::kHttps;
-            }
-            else
-            {
-                throw std::invalid_argument(
-                    "Protocol must be either http or https");
-            }
-
-            continue;
-        }
-
-        if (argument == "--host")
-        {
-            config.host = requireValue(argc, argv, index, "--host");
-            continue;
-        }
-
-        if (argument == "--port")
-        {
-            config.port =
-                parsePort(requireValue(argc, argv, index, "--port"));
-            config.port_set = true;
-            continue;
-        }
-
-        if (argument == "--threads")
-        {
-            config.threads =
-                parseThreadCount(requireValue(argc, argv, index, "--threads"));
-            continue;
-        }
-
-        if (argument == "--public-dir")
-        {
-            config.public_dir =
-                requireValue(argc, argv, index, "--public-dir");
-            continue;
-        }
-
-        if (argument == "--database")
-        {
-            config.database_file =
-                requireValue(argc, argv, index, "--database");
-            continue;
-        }
-
-        if (argument == "--cert")
-        {
-            config.certificate_file =
-                requireValue(argc, argv, index, "--cert");
-            continue;
-        }
-
-        if (argument == "--key")
-        {
-            config.private_key_file = requireValue(argc, argv, index, "--key");
-            continue;
-        }
-
-        throw std::invalid_argument(
-            "Unknown command-line option: " + argument);
+        return ServerProtocol::kHttp;
     }
 
-    if (!config.port_set)
+    if (value == "https")
     {
-        config.port = config.protocol == ServerProtocol::kHttps ? 8443 : 8080;
+        return ServerProtocol::kHttps;
     }
 
-    return config;
+    throw std::invalid_argument("Protocol must be either http or https");
 }
 
 //------------------------------------------------------------------------------
 
-std::filesystem::path executablePath()
+void applyConfigValue(
+    ProgramOptions    &config,
+    const std::string &raw_key,
+    const std::string &value)
+{
+    const std::string key = normalizeConfigKey(raw_key);
+
+    if (key == "protocol" || key == "server.protocol")
+    {
+        config.protocol = parseProtocol(value);
+        return;
+    }
+
+    if (key == "host" || key == "server.host")
+    {
+        config.host = value;
+        return;
+    }
+
+    if (key == "port" || key == "server.port")
+    {
+        config.port     = parsePort(value);
+        config.port_set = true;
+        return;
+    }
+
+    if (key == "threads" || key == "server.threads")
+    {
+        config.threads = parseThreadCount(value);
+        return;
+    }
+
+    if (key == "public_dir" || key == "server.public_dir")
+    {
+        config.public_dir     = value;
+        config.public_dir_set = true;
+        return;
+    }
+
+    if (key == "database" ||
+        key == "database_file" ||
+        key == "storage.database" ||
+        key == "storage.database_file")
+    {
+        config.database_file = value;
+        return;
+    }
+
+    if (key == "cert" ||
+        key == "certificate_file" ||
+        key == "tls.cert" ||
+        key == "tls.certificate_file")
+    {
+        config.certificate_file = value;
+        return;
+    }
+
+    if (key == "key" ||
+        key == "private_key_file" ||
+        key == "tls.key" ||
+        key == "tls.private_key_file")
+    {
+        config.private_key_file = value;
+        return;
+    }
+
+    if (key == "log_level" || key == "logging.level")
+    {
+        config.log_level = value;
+        return;
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void applyJsonConfig(ProgramOptions &config, const std::filesystem::path &path)
+{
+    pt::ptree tree;
+
+    pt::read_json(path.string(), tree);
+
+    const std::vector<std::pair<std::string, std::string>> keys = {
+        {             "protocol",              "protocol"},
+        {                 "host",                  "host"},
+        {                 "port",                  "port"},
+        {              "threads",               "threads"},
+        {           "public_dir",            "public_dir"},
+        {             "database",              "database"},
+        {        "database_file",         "database_file"},
+        {                 "cert",                  "cert"},
+        {     "certificate_file",      "certificate_file"},
+        {                  "key",                   "key"},
+        {     "private_key_file",      "private_key_file"},
+        {            "log_level",             "log_level"},
+        {      "server.protocol",       "server.protocol"},
+        {          "server.host",           "server.host"},
+        {          "server.port",           "server.port"},
+        {       "server.threads",        "server.threads"},
+        {    "server.public_dir",     "server.public_dir"},
+        {     "storage.database",      "storage.database"},
+        {"storage.database_file", "storage.database_file"},
+        {             "tls.cert",              "tls.cert"},
+        { "tls.certificate_file",  "tls.certificate_file"},
+        {              "tls.key",               "tls.key"},
+        { "tls.private_key_file",  "tls.private_key_file"},
+        {        "logging.level",         "logging.level"}
+    };
+
+    for (const auto &[path_name, config_key] : keys)
+    {
+        const auto value = tree.get_optional<std::string>(path_name);
+
+        if (value.has_value())
+        {
+            applyConfigValue(config, config_key, *value);
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void applyConfigFile(
+    ProgramOptions              &config,
+    const std::filesystem::path &path)
+{
+    if (path.extension() != ".json")
+    {
+        throw std::invalid_argument("Config file extension must be .json");
+    }
+
+    applyJsonConfig(config, path);
+}
+
+//------------------------------------------------------------------------------
+
+auto executablePath() -> std::filesystem::path
 {
     std::error_code error;
 
@@ -261,7 +371,78 @@ std::filesystem::path executablePath()
 
 //------------------------------------------------------------------------------
 
-std::filesystem::path localPublicDirectory()
+auto defaultConfigPaths() -> std::vector<std::filesystem::path>
+{
+    std::vector<std::filesystem::path> result;
+
+    const std::filesystem::path executable_path = executablePath();
+
+    if (!executable_path.empty())
+    {
+        const std::filesystem::path executable_directory =
+            executable_path.parent_path();
+
+        result.emplace_back(
+            executable_directory /
+            "config" /
+            "async_task_web_server.json");
+    }
+
+    result.emplace_back(
+        "/etc/async_task_web_server/async_task_web_server.json");
+
+    return result;
+}
+
+//------------------------------------------------------------------------------
+
+auto findExistingDefaultConfigPath()
+    -> std::optional<std::filesystem::path>
+{
+    for (const std::filesystem::path &path : defaultConfigPaths())
+    {
+        std::error_code error;
+
+        if (std::filesystem::is_regular_file(path, error) && !error)
+        {
+            return path;
+        }
+    }
+
+    return std::nullopt;
+}
+
+//------------------------------------------------------------------------------
+
+auto findConfigPath(int argc, char *argv[])
+    -> std::optional<std::filesystem::path>
+{
+    for (int index = 1; index < argc; ++index)
+    {
+        const std::string argument = argv[index];
+
+        if (argument == "--config")
+        {
+            return requireValue(argc, argv, index, "--config");
+        }
+    }
+
+    if (argc > 1)
+    {
+        const std::string first_argument = argv[1];
+
+        if (!first_argument.starts_with("--"))
+        {
+            return first_argument;
+        }
+    }
+
+    return findExistingDefaultConfigPath();
+}
+
+//------------------------------------------------------------------------------
+
+auto localPublicDirectory() -> std::filesystem::path
 {
     const std::filesystem::path executable_path = executablePath();
 
@@ -275,7 +456,7 @@ std::filesystem::path localPublicDirectory()
 
 //------------------------------------------------------------------------------
 
-std::filesystem::path installedPublicDirectory()
+auto installedPublicDirectory() -> std::filesystem::path
 {
     const std::filesystem::path executable_path = executablePath();
 
@@ -284,8 +465,7 @@ std::filesystem::path installedPublicDirectory()
         return {};
     }
 
-    std::filesystem::path install_prefix =
-        executable_path.parent_path();
+    std::filesystem::path install_prefix = executable_path.parent_path();
 
     const std::filesystem::path binary_directory(
         application::config::kInstallBinaryDirectory);
@@ -300,8 +480,7 @@ std::filesystem::path installedPublicDirectory()
         install_prefix = install_prefix.parent_path();
     }
 
-    return install_prefix /
-           application::config::kInstallPublicDirectory;
+    return install_prefix / application::config::kInstallPublicDirectory;
 }
 
 //------------------------------------------------------------------------------
@@ -321,17 +500,14 @@ bool isUsablePublicDirectory(
         return false;
     }
 
-    std::ifstream index_file(
-        directory / "index.html",
-        std::ios::binary);
+    std::ifstream index_file(directory / "index.html", std::ios::binary);
 
     return index_file.good();
 }
 
 //------------------------------------------------------------------------------
 
-std::filesystem::path normalizePath(
-    const std::filesystem::path &path)
+auto normalizePath(const std::filesystem::path &path) -> std::filesystem::path
 {
     std::error_code error;
 
@@ -348,8 +524,8 @@ std::filesystem::path normalizePath(
 
 //------------------------------------------------------------------------------
 
-std::filesystem::path resolvePublicDirectory(
-    const ProgramOptions &config)
+auto resolvePublicDirectory(const ProgramOptions &config)
+    -> std::filesystem::path
 {
     if (config.public_dir_set)
     {
@@ -358,14 +534,16 @@ std::filesystem::path resolvePublicDirectory(
             return normalizePath(config.public_dir);
         }
 
-        std::cerr
-            << "Public directory specified by --public-dir is unavailable: "
-            << config.public_dir
-            << "\nTrying fallback directories\n";
+        std::ostringstream message;
+
+        message << "Public directory specified by --public-dir is unavailable: "
+                << config.public_dir
+                << ". Trying fallback directories";
+
+        common::logWarning(message.str());
     }
 
-    const std::filesystem::path local_directory =
-        localPublicDirectory();
+    const std::filesystem::path local_directory = localPublicDirectory();
 
     if (isUsablePublicDirectory(local_directory))
     {
@@ -380,28 +558,21 @@ std::filesystem::path resolvePublicDirectory(
         return normalizePath(installed_directory);
     }
 
-    std::string message =
-        "Unable to locate a readable public directory";
+    std::string message = "Unable to locate a readable public directory";
 
     if (config.public_dir_set)
     {
-        message +=
-            "\nRequested directory: " +
-            config.public_dir.string();
+        message += "\nRequested directory: " + config.public_dir.string();
     }
 
     if (!local_directory.empty())
     {
-        message +=
-            "\nLocal directory: " +
-            local_directory.string();
+        message += "\nLocal directory: " + local_directory.string();
     }
 
     if (!installed_directory.empty())
     {
-        message +=
-            "\nInstalled directory: " +
-            installed_directory.string();
+        message += "\nInstalled directory: " + installed_directory.string();
     }
 
     throw std::runtime_error(message);
@@ -409,10 +580,141 @@ std::filesystem::path resolvePublicDirectory(
 
 //------------------------------------------------------------------------------
 
-WebServerPtr createWebServer(
+auto parseProgramOptions(int argc, char *argv[]) -> ProgramOptions
+{
+    ProgramOptions config;
+
+    for (int index = 1; index < argc; ++index)
+    {
+        if (std::string(argv[index]) == "--help")
+        {
+            printUsage(argv[0]);
+            std::exit(EXIT_SUCCESS);
+        }
+    }
+
+    const std::optional<std::filesystem::path> config_path =
+        findConfigPath(argc, argv);
+
+    if (config_path.has_value())
+    {
+        config.config_file = *config_path;
+        applyConfigFile(config, *config_path);
+    }
+
+    for (int index = 1; index < argc; ++index)
+    {
+        const std::string argument = argv[index];
+
+        if (index == 1 && !argument.starts_with("--"))
+        {
+            continue;
+        }
+
+        if (argument == "--help")
+        {
+            continue;
+        }
+
+        if (argument == "--config")
+        {
+            requireValue(argc, argv, index, "--config");
+            continue;
+        }
+
+        if (argument == "--protocol")
+        {
+            config.protocol = parseProtocol(
+                requireValue(argc, argv, index, "--protocol"));
+            continue;
+        }
+
+        if (argument == "--host")
+        {
+            config.host = requireValue(argc, argv, index, "--host");
+            continue;
+        }
+
+        if (argument == "--port")
+        {
+            config.port =
+                parsePort(requireValue(argc, argv, index, "--port"));
+            config.port_set = true;
+            continue;
+        }
+
+        if (argument == "--threads")
+        {
+            config.threads = parseThreadCount(
+                requireValue(argc, argv, index, "--threads"));
+            continue;
+        }
+
+        if (argument == "--public-dir")
+        {
+            config.public_dir =
+                requireValue(argc, argv, index, "--public-dir");
+            config.public_dir_set = true;
+            continue;
+        }
+
+        if (argument == "--database")
+        {
+            config.database_file = requireValue(argc, argv, index, "--database");
+            continue;
+        }
+
+        if (argument == "--cert")
+        {
+            config.certificate_file = requireValue(argc, argv, index, "--cert");
+            continue;
+        }
+
+        if (argument == "--key")
+        {
+            config.private_key_file = requireValue(argc, argv, index, "--key");
+            continue;
+        }
+
+        if (argument == "--log-level")
+        {
+            config.log_level = requireValue(argc, argv, index, "--log-level");
+            continue;
+        }
+
+        throw std::invalid_argument(
+            "Unknown command-line option: " + argument);
+    }
+
+    if (!config.port_set)
+    {
+        config.port = config.protocol == ServerProtocol::kHttps ? 8443 : 8080;
+    }
+
+    return config;
+}
+
+//------------------------------------------------------------------------------
+
+auto stripQueryString(std::string target) -> std::string
+{
+    const std::string::size_type query_position = target.find('?');
+
+    if (query_position != std::string::npos)
+    {
+        target.erase(query_position);
+    }
+
+    return target;
+}
+
+//------------------------------------------------------------------------------
+
+auto createWebServer(
     const ProgramOptions         &config,
     net::io_context              &io_context,
     server::CallbackHandleRequest request_handler)
+    -> WebServerPtr
 {
     const net::ip::address address = net::ip::make_address(config.host);
 
@@ -453,35 +755,46 @@ WebServerPtr createWebServer(
 
 //------------------------------------------------------------------------------
 
-void setupSignalHandling(
-    net::signal_set    &signals,
+auto setupShutdownSignalHandling(
     net::io_context    &io_context,
     const WebServerPtr &web_server)
+    -> std::unique_ptr<net::signal_set>
 {
-    signals.async_wait(
-        [&io_context, web_server](
-            const boost::system::error_code &error,
-            int                              signal_number) {
+    using error_code = boost::system::error_code;
+
+    auto signals =
+        std::make_unique<net::signal_set>(
+            io_context,
+            SIGINT,
+            SIGTERM);
+
+    signals->async_wait(
+        [&io_context, web_server](const error_code &error, int signal_number) {
             if (error)
             {
                 return;
             }
 
-            std::cout
-                << "Received signal "
-                << signal_number
-                << ", stopping server\n";
+            std::ostringstream message;
+
+            message << "Received signal "
+                    << signal_number
+                    << ", stop server";
+
+            common::logInfo(message.str());
 
             web_server->stop();
             io_context.stop();
         });
+
+    return signals;
 }
 
 //------------------------------------------------------------------------------
 
-void restoreScheduledTasks(
-    net::io_context                             &io_context,
-    const std::shared_ptr<tasks::TaskScheduler> &scheduler)
+void spawnRestoreScheduledTasks(
+    net::io_context        &io_context,
+    const TaskSchedulerPtr &scheduler)
 {
     net::co_spawn(
         io_context,
@@ -498,20 +811,25 @@ void restoreScheduledTasks(
             }
             catch (const std::exception &exception)
             {
-                std::cerr
-                    << "[scheduler] restore error: "
-                    << exception.what()
-                    << '\n';
+                std::ostringstream message;
+
+                message << "[scheduler] restore error: "
+                        << exception.what();
+
+                common::logError(message.str());
+            }
+            catch (...)
+            {
+                common::logError("[scheduler] restore unknown error");
             }
         });
 }
 
 //------------------------------------------------------------------------------
 
-void runWebServer(
-    const ProgramOptions &config,
-    net::io_context      &io_context,
-    const WebServerPtr   &web_server)
+void spawnWebServerAcceptLoop(
+    net::io_context    &io_context,
+    const WebServerPtr &web_server)
 {
     net::co_spawn(
         io_context,
@@ -527,57 +845,26 @@ void runWebServer(
                 }
                 catch (const std::exception &exception)
                 {
-                    std::cerr
-                        << "[server] accept loop error: "
-                        << exception.what()
-                        << '\n';
+                    std::ostringstream message;
+
+                    message << "[server] acceptor error: "
+                            << exception.what();
+
+                    common::logError(message.str());
+                }
+                catch (...)
+                {
+                    common::logError("[server] acceptor unknown error");
                 }
             }
 
             io_context.stop();
         });
-
-    const char *protocol_name =
-        config.protocol == ServerProtocol::kHttps ? "https" : "http";
-
-    std::cout
-        << "Server started: "
-        << protocol_name
-        << "://"
-        << config.host
-        << ':'
-        << config.port
-        << "\nPublic directory: "
-        << config.public_dir
-        << "\nSQLite database: "
-        << config.database_file
-        << "\nWorker threads: "
-        << config.threads
-        << '\n';
-
-    std::vector<std::thread> workers;
-
-    workers.reserve(config.threads - 1);
-
-    for (std::size_t index = 1; index < config.threads; ++index)
-    {
-        workers.emplace_back(
-            [&io_context]() {
-                io_context.run();
-            });
-    }
-
-    io_context.run();
-
-    for (std::thread &worker : workers)
-    {
-        worker.join();
-    }
 }
 
-//------------------------------------------------------------------------------п
+//------------------------------------------------------------------------------
 
-server::HttpResponse makeInternalServerError(unsigned int version)
+auto makeInternalServerError(unsigned int version) -> server::HttpResponse
 {
     server::HttpResponse response;
 
@@ -592,17 +879,26 @@ server::HttpResponse makeInternalServerError(unsigned int version)
 
 //------------------------------------------------------------------------------
 
-server::CallbackHandleRequest withExceptionHandling(
-    server::CallbackHandleRequest request_handler)
+auto makeHandlerWithException(
+    server::CallbackHandleRequest request_handler,
+    ApplicationMetricsPtr         metrics)
+    -> server::CallbackHandleRequest
 {
-    return [request_handler = std::move(request_handler)](
+    return [request_handler = std::move(request_handler), metrics](
                server::HttpRequest &&request) mutable
                -> server::AwaitableResponse {
         const auto request_version = request.version;
 
+        metrics->recordRequest();
+
         try
         {
-            co_return co_await request_handler(std::move(request));
+            server::HttpResponse response =
+                co_await request_handler(std::move(request));
+
+            metrics->recordResponse(response.status);
+
+            co_return response;
         }
         catch (const boost::system::system_error &error)
         {
@@ -611,26 +907,155 @@ server::CallbackHandleRequest withExceptionHandling(
                 throw;
             }
 
-            std::cerr
-                << "[request handler] system error: "
-                << error.what()
-                << '\n';
+            metrics->recordException();
+
+            std::ostringstream message;
+
+            message << "[request handler] system error: "
+                    << error.what();
+
+            common::logError(message.str());
         }
         catch (const std::exception &error)
         {
-            std::cerr
-                << "[request handler] exception: "
-                << error.what()
-                << '\n';
+            metrics->recordException();
+
+            std::ostringstream message;
+
+            message << "[request handler] exception: "
+                    << error.what();
+
+            common::logError(message.str());
         }
         catch (...)
         {
-            std::cerr
-                << "[request handler] unknown exception\n";
+            metrics->recordException();
+            common::logError("[request handler] unknown exception");
         }
+
+        metrics->recordResponse(500);
 
         co_return makeInternalServerError(request_version);
     };
+}
+
+//------------------------------------------------------------------------------
+
+auto makeRequestHandler(
+    const ProgramOptions   &config,
+    const TaskSchedulerPtr &task_scheduler,
+    const TaskServicePtr   &task_service)
+    -> server::CallbackHandleRequest
+{
+    auto metrics =
+        std::make_shared<application::ApplicationMetrics>();
+
+    auto handler_api =
+        std::make_shared<application::TaskApiHandler>(task_service);
+
+    auto handler_static_file =
+        std::make_shared<server::StaticFileHandler>(config.public_dir);
+
+    auto handler_metrics_sync =
+        [metrics, task_scheduler](
+            server::HttpRequest &&request) -> server::HttpResponse {
+        if (request.method != "GET")
+        {
+            return server::HttpResponse::methodNotAllowed(
+                R"({"error":"Method Not Allowed"})",
+                request.keep_alive,
+                request.version);
+        }
+
+        return server::HttpResponse::ok(
+            metrics->toPrometheusText(task_scheduler->metrics()),
+            "text/plain; version=0.0.4; charset=utf-8",
+            request.keep_alive,
+            request.version);
+    };
+
+    auto request_handler =
+        [request_handler_api          = std::move(handler_api),
+         request_handler_static_file  = std::move(handler_static_file),
+         request_handler_metrics_sync = std::move(handler_metrics_sync)](
+            server::HttpRequest &&request) -> server::AwaitableResponse {
+        const std::string target = stripQueryString(request.target);
+
+        if (target == "/metrics")
+        {
+            co_return request_handler_metrics_sync(std::move(request));
+        }
+
+        if (target.starts_with("/api/"))
+        {
+            co_return co_await request_handler_api->handle(
+                std::move(request));
+        }
+
+        co_return request_handler_static_file->handle(
+            std::move(request));
+    };
+
+    return makeHandlerWithException(std::move(request_handler), metrics);
+}
+
+//------------------------------------------------------------------------------
+
+auto makeConfiguration(int argc, char *argv[]) -> ProgramOptions
+{
+    auto config = parseProgramOptions(argc, argv);
+
+    common::setLogLevel(common::logLevelFromString(config.log_level));
+
+    if (!config.config_file.empty())
+    {
+        common::logInfo(
+            "Config file loaded: " + config.config_file.string());
+    }
+
+    config.public_dir = resolvePublicDirectory(config);
+
+    return config;
+}
+
+//------------------------------------------------------------------------------
+
+void run(const ProgramOptions &config, net::io_context &io_context)
+{
+    {
+        std::ostringstream message;
+
+        const char *protocol =
+            (config.protocol == ServerProtocol::kHttps ? "https" : "http");
+
+        message << "Server started:\n"
+                << "  protocol..........: " << protocol << '\n'
+                << "  listen endpoint...: " << config.host << ':'
+                << config.port << '\n'
+                << "  public directory..: " << config.public_dir << '\n'
+                << "  SQLite database...: " << config.database_file << '\n'
+                << "  worker threads....: " << config.threads;
+
+        common::logInfo(message.str());
+    }
+
+    std::vector<std::thread> workers;
+
+    workers.reserve(config.threads - 1);
+
+    for (std::size_t index = 1; index < config.threads; ++index)
+    {
+        workers.emplace_back([&io_context]() {
+            io_context.run();
+        });
+    }
+
+    io_context.run();
+
+    for (std::thread &worker : workers)
+    {
+        worker.join();
+    }
 }
 
 } // namespace
@@ -641,68 +1066,52 @@ int main(int argc, char *argv[])
 {
     try
     {
-        ProgramOptions config = parseProgramOptions(argc, argv);
+        auto config =
+            makeConfiguration(argc, argv);
 
-        config.public_dir = resolvePublicDirectory(config);
+        auto io_context =
+            net::io_context{};
 
-        net::io_context io_context;
+        auto task_repository =
+            tasks::TaskRepository{config.database_file};
 
-        tasks::TaskRepository repository(config.database_file);
+        auto task_scheduler =
+            std::make_shared<tasks::TaskScheduler>(
+                io_context.get_executor(),
+                task_repository);
 
-        auto scheduler = std::make_shared<tasks::TaskScheduler>(
-            io_context.get_executor(),
-            repository);
+        auto task_service =
+            std::make_shared<tasks::TaskService>(
+                task_repository,
+                task_scheduler);
 
-        auto task_service = std::make_shared<tasks::TaskService>(
-            repository,
-            scheduler);
+        auto request_handler =
+            makeRequestHandler(config, task_scheduler, task_service);
 
-        auto task_api_handler =
-            std::make_shared<application::TaskApiHandler>(task_service);
+        auto web_server =
+            createWebServer(
+                config,
+                io_context,
+                std::move(request_handler));
 
-        auto static_file_handler =
-            std::make_shared<server::StaticFileHandler>(config.public_dir);
+        [[maybe_unused]] auto shutdown_signal_handling =
+            setupShutdownSignalHandling(io_context, web_server);
 
-        auto application_request_handler =
-            [task_api_handler, static_file_handler](
-                server::HttpRequest &&request) mutable
-            -> server::AwaitableResponse {
-            constexpr std::string_view kApiPrefix = "/api/";
+        spawnRestoreScheduledTasks(io_context, task_scheduler);
 
-            if (request.target.starts_with(kApiPrefix))
-            {
-                co_return co_await task_api_handler->handle(
-                    std::move(request));
-            }
+        spawnWebServerAcceptLoop(io_context, web_server);
 
-            co_return static_file_handler->handle(
-                std::move(request));
-        };
-
-        auto request_handler_with_exception =
-            withExceptionHandling(std::move(application_request_handler));
-
-        const auto web_server = createWebServer(
-            config,
-            io_context,
-            request_handler_with_exception);
-
-        net::signal_set signals(io_context, SIGINT, SIGTERM);
-
-        setupSignalHandling(signals, io_context, web_server);
-
-        restoreScheduledTasks(io_context, scheduler);
-
-        runWebServer(config, io_context, web_server);
+        run(config, io_context);
 
         return EXIT_SUCCESS;
     }
     catch (const std::exception &error)
     {
-        std::cerr
-            << "Fatal error: "
-            << error.what()
-            << '\n';
+        common::logError("Fatal error: " + std::string(error.what()));
+    }
+    catch (...)
+    {
+        common::logError("Fatal unknown exception.");
     }
 
     return EXIT_FAILURE;
