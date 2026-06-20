@@ -7,8 +7,8 @@
 - `async_web_server` — HTTP/HTTPS транспорт, coroutine-сессии и статические файлы;
 - `task_system` — модель задач, SQLite, REST API и планировщик таймеров.
 
-Исполняемый файл связывает обе библиотеки через прикладной обработчик
-`ApplicationRequestHandler`.
+Исполняемый файл связывает обе библиотеки через прикладной HTTP-адаптер
+`TaskApiHandler`.
 
 ## Структура
 
@@ -16,8 +16,8 @@
 async_task_web_server/
 ├── CMakeLists.txt
 ├── app/
-│   ├── ApplicationRequestHandler.cpp
-│   ├── ApplicationRequestHandler.hpp
+│   ├── ApplicationMetrics.cpp
+│   ├── ApplicationMetrics.hpp
 │   ├── TaskApiHandler.cpp
 │   ├── TaskApiHandler.hpp
 │   └── main.cpp
@@ -25,18 +25,20 @@ async_task_web_server/
 │   ├── CMakeLists.txt
 │   ├── include/server/
 │   └── src/server/
+├── common/
+│   ├── CMakeLists.txt
+│   ├── include/common/
+│   └── src/common/
+├── config/
+│   └── async_task_web_server.json
 ├── task_system/
 │   ├── CMakeLists.txt
 │   ├── include/tasks/
 │   └── src/tasks/
-├── public/
-│   ├── index.html
-│   ├── styles.css
-│   └── app.js
-├── certs/
-├── data/
-└── scripts/
-    └── generate-certificate.sh
+└── public/
+    ├── index.html
+    ├── styles.css
+    └── app.js
 ```
 
 ## Зависимости
@@ -63,17 +65,24 @@ cmake --build build -j
 ```text
 build/async_web_server/libasync_web_server.a
 build/task_system/libtask_system.a
-build/async_task_web_server
+build/common/libcommon.a
+build/app/async_task_web_server
+```
+
+После сборки рядом с бинарным файлом также копируются:
+
+```text
+build/app/public/
+build/app/config/async_task_web_server.json
 ```
 
 ## Запуск HTTP
 
 ```bash
-./build/async_task_web_server \
+./build/app/async_task_web_server \
     --protocol http \
     --port 8080 \
-    --public-dir build/public \
-    --database build/data/tasks.db
+    --database build/app/data/tasks.db
 ```
 
 Открыть в браузере:
@@ -85,13 +94,10 @@ http://localhost:8080
 ## Запуск HTTPS
 
 ```bash
-./scripts/generate-certificate.sh
-
-./build/async_task_web_server \
+./build/app/async_task_web_server \
     --protocol https \
     --port 8443 \
-    --public-dir build/public \
-    --database build/data/tasks.db \
+    --database build/app/data/tasks.db \
     --cert certs/server.crt \
     --key certs/server.key
 ```
@@ -107,6 +113,7 @@ https://localhost:8443
 ```text
 async_task_web_server executable
 ├── async_web_server::async_web_server
+├── common::common
 └── task_system::task_system
 ```
 
@@ -114,45 +121,52 @@ async_task_web_server executable
 не знает об HTTP, HTTPS и статических файлах. HTTP-адаптер `TaskApiHandler`
 расположен в исполняемом приложении и связывает обе независимые библиотеки.
 
-## Конфигурация через JSON/YAML
+## Конфигурация через JSON
 
 Параметры запуска можно передать через файл:
 
 ```bash
-./build/async_task_web_server --config config.example.json
+./build/app/async_task_web_server --config config/async_task_web_server.json
 ```
 
-или:
+Если параметр `--config` не указан, приложение ищет конфигурационный файл в
+следующих местах:
 
-```bash
-./build/async_task_web_server --config config.example.yaml
+```text
+<binary_dir>/config/async_task_web_server.json
+/etc/async_task_web_server/async_task_web_server.json
 ```
 
 CLI-аргументы имеют приоритет над файлом конфигурации:
 
 ```bash
-./build/async_task_web_server --config config.example.yaml --port 9090
+./build/app/async_task_web_server \
+    --config config/async_task_web_server.json \
+    --port 9090
 ```
 
-Поддерживаемые параметры:
+Пример конфигурации:
 
-```yaml
-server:
-  protocol: http
-  host: 0.0.0.0
-  port: 8080
-  threads: 4
-  public_dir: public
-
-storage:
-  database: data/tasks.db
-
-tls:
-  certificate_file: certs/server.crt
-  private_key_file: certs/server.key
-
-logging:
-  level: info
+```json
+{
+  "server": {
+    "protocol": "http",
+    "host": "0.0.0.0",
+    "port": 8080,
+    "threads": 4,
+    "public_dir": "public"
+  },
+  "storage": {
+    "database": "data/tasks.db"
+  },
+  "tls": {
+    "certificate_file": "certs/server.crt",
+    "private_key_file": "certs/server.key"
+  },
+  "logging": {
+    "level": "info"
+  }
+}
 ```
 
 ## Логирование
@@ -161,7 +175,7 @@ logging:
 логирования задаётся через CLI или конфиг:
 
 ```bash
-./build/async_task_web_server --log-level debug
+./build/app/async_task_web_server --log-level debug
 ```
 
 Доступные уровни: `debug`, `info`, `warning`, `error`.

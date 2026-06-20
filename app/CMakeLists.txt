@@ -71,10 +71,13 @@ add_custom_command(
 add_custom_command(
     TARGET async_task_web_server
     POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${PROJECT_SOURCE_DIR}/config
-            $<TARGET_FILE_DIR:async_task_web_server>
-)
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:async_task_web_server>/config"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${PROJECT_SOURCE_DIR}/config/async_task_web_server.json"
+            "$<TARGET_FILE_DIR:async_task_web_server>/config/async_task_web_server.json"
+    COMMENT
+        "Copying configuration file to the binary directory")
 
 install(
     TARGETS async_task_web_server
@@ -88,6 +91,7 @@ install(
         "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/public")
 
 install(
-    DIRECTORY ${PROJECT_SOURCE_DIR}/config/
-    DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+    FILES
+        "${PROJECT_SOURCE_DIR}/config/async_task_web_server.json"
+    DESTINATION
+        "${CMAKE_INSTALL_SYSCONFDIR}/async_task_web_server")
