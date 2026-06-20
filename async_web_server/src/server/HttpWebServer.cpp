@@ -28,39 +28,27 @@ HttpWebServer::HttpWebServer(
     acceptor_.open(endpoint.protocol(), error);
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.open");
+        throw boost::system::system_error(error, "acceptor.open");
     }
 
-    acceptor_.set_option(
-        net::socket_base::reuse_address(true),
-        error);
+    acceptor_.set_option(net::socket_base::reuse_address(true), error);
 
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.set_option");
+        throw boost::system::system_error(error, "acceptor.set_option");
     }
 
     acceptor_.bind(endpoint, error);
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.bind");
+        throw boost::system::system_error(error, "acceptor.bind");
     }
 
-    acceptor_.listen(
-        net::socket_base::max_listen_connections,
-        error);
+    acceptor_.listen(net::socket_base::max_listen_connections, error);
 
     if (error)
     {
-        throw boost::system::system_error(
-            error,
-            "acceptor.listen");
+        throw boost::system::system_error(error, "acceptor.listen");
     }
 }
 

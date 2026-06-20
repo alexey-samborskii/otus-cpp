@@ -28,54 +28,149 @@ textarea {
     border: 1px solid #444;
     border-radius: 12px;
     background: #262626;
+}
+
+.panel {
     padding: 20px;
 }
 
 .header,
-.tasks-header,
-.task-card {
+.tasks-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 16px;
 }
 
 .header {
-    margin-bottom: 24px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    margin: -20px -20px 24px;
+    padding: 20px;
+
+    background: #262626;
+    border-bottom: 1px solid #444;
+    border-radius: 12px 12px 0 0;
 }
 
 .content {
     display: grid;
-    grid-template-columns: 360px 1fr;
+    grid-template-columns: 360px minmax(0, 1fr);
+    align-items: start;
     gap: 24px;
 }
 
-form,
+.editor {
+    position: sticky;
+    top: 120px;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.tasks {
+    min-width: 0;
+    overflow: visible;
+    border-radius: 12px;
+}
+
+.editor h2,
+.tasks-header {
+    min-height: 60px;
+    margin: 0;
+    padding: 16px 20px;
+
+    background: #262626;
+    border-bottom: 1px solid #444;
+    border-radius: 12px 12px 0 0;
+}
+
+.editor h2,
+.tasks-header h2 {
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+.tasks-header {
+    position: sticky;
+    top: 120px;
+    z-index: 6;
+}
+
+.tasks-header h2 {
+    margin: 0;
+}
+
+form {
+    display: grid;
+    gap: 12px;
+    padding: 20px;
+}
+
 .tasks-list {
     display: grid;
     gap: 12px;
+    padding: 20px;
 }
 
 input,
 textarea {
     width: 100%;
     border: 1px solid #555;
+    border-radius: 12px;
     padding: 10px;
     background: #1f1f1f;
     color: #f5f5f5;
 }
 
-button,
-.button {
+textarea {
+    resize: vertical;
+}
+
+input:focus,
+textarea:focus {
+    outline: none;
+    border-color: #8ea2ff;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #888;
+}
+
+button {
     border: 0;
+    border-radius: 12px;
     padding: 10px 14px;
     background: #333;
     color: #f5f5f5;
-    font-weight: bold;
     cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+button:hover {
+    background: #444;
+}
+
+button:active {
+    transform: translateY(1px);
 }
 
 .button-primary {
     background: #4f5bd5;
+}
+
+.button-primary:hover {
+    background: #6673ff;
+}
+
+.button-secondary {
+    background: #333;
+}
+
+.button-secondary:hover {
+    background: #444;
 }
 
 .button-danger {
@@ -83,35 +178,77 @@ button,
     color: #ffb3b3;
 }
 
+.button-danger:hover {
+    background: #873030;
+    color: #ffd0d0;
+}
+
 .button-small {
     padding: 8px 10px;
 }
 
-.actions,
-.task-actions {
+.actions {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-start;
     gap: 8px;
 }
 
-.subtitle,
-.eyebrow,
-.task-id,
-.task-description,
-.empty-state {
-    color: #aaa;
+.task-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 110px;
+    align-items: start;
+    gap: 16px;
+    padding: 20px;
 }
 
-.eyebrow,
-.task-id,
-.task-meta dt {
+.task-info {
+    display: grid;
+    min-width: 0;
+    gap: 14px;
+}
+
+.task-field {
+    display: grid;
+    gap: 4px;
+}
+
+.task-field-label {
+    color: #f5f5f5;
     font-size: 12px;
     font-weight: bold;
     text-transform: uppercase;
 }
 
+.task-field-value,
+.task-id,
+.task-title,
+.task-description,
+.task-scheduled-at,
+.task-status {
+    margin: 0 0 0 16px;
+    color: #aaa;
+    font-size: 16px;
+    font-weight: normal;
+    line-height: 1.25;
+    text-transform: none;
+    overflow-wrap: anywhere;
+}
+
+.task-actions {
+    display: grid;
+    gap: 8px;
+    width: 110px;
+}
+
+.task-actions button {
+    width: 100%;
+}
+
 .message {
     min-height: 20px;
+    margin: 0;
+    padding: 0 20px 20px;
     color: #65d98b;
 }
 
@@ -120,8 +257,8 @@ button,
 }
 
 .counter {
-    padding: 6px 10px;
-    background: #333;
+    padding: 0;
+    background: transparent;
     color: #8ea2ff;
     font-weight: bold;
 }
@@ -130,7 +267,9 @@ button,
     display: grid;
     place-items: center;
     min-height: 120px;
+    margin: 20px;
     border: 1px dashed #555;
+    color: #aaa;
 }
 
 .hidden {
@@ -138,12 +277,26 @@ button,
 }
 
 @media (max-width: 800px) {
-    .header,
-    .task-card {
+    .header {
         flex-direction: column;
+        align-items: stretch;
     }
 
     .content {
         grid-template-columns: 1fr;
+    }
+
+    .editor,
+    .tasks-header {
+        position: static;
+    }
+
+    .task-card {
+        grid-template-columns: 1fr;
+    }
+
+    .task-actions {
+        width: 100%;
+        grid-template-columns: 1fr 1fr;
     }
 }
