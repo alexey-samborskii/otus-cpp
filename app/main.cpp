@@ -1033,11 +1033,14 @@ int main(int argc, char *argv[])
 {
     try
     {
-        auto config = makeConfiguration(argc, argv);
+        auto config =
+            makeConfiguration(argc, argv);
 
-        auto io_context = net::io_context{};
+        auto io_context =
+            net::io_context{};
 
-        auto task_repository = tasks::TaskRepository{config.database_file};
+        auto task_repository =
+            tasks::TaskRepository{config.database_file};
 
         auto task_scheduler =
             std::make_shared<tasks::TaskScheduler>(
