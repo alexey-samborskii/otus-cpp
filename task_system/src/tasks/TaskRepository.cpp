@@ -19,9 +19,7 @@ namespace
 class Statement
 {
 public:
-    Statement(
-        sqlite3          *database,
-        const std::string &sql)
+    Statement(sqlite3 *database, const std::string &sql)
     {
         const int result = sqlite3_prepare_v2(
             database,
@@ -32,9 +30,8 @@ public:
 
         if (result != SQLITE_OK)
         {
-            throw std::runtime_error(
-                "sqlite3_prepare_v2 failed: " +
-                std::string(sqlite3_errmsg(database)));
+            throw std::runtime_error("sqlite3_prepare_v2 failed: " +
+                                     std::string(sqlite3_errmsg(database)));
         }
     }
 
@@ -43,10 +40,10 @@ public:
         sqlite3_finalize(statement_);
     }
 
-    Statement(const Statement &) = delete;
+    Statement(const Statement &)            = delete;
     Statement &operator=(const Statement &) = delete;
 
-    sqlite3_stmt *get() const
+    auto get() const -> sqlite3_stmt *
     {
         return statement_;
     }
@@ -57,10 +54,7 @@ private:
 
 //------------------------------------------------------------------------------
 
-void checkResult(
-    sqlite3    *database,
-    int         result,
-    const char *operation)
+void checkResult(sqlite3 *database, int result, const char *operation)
 {
     if (result == SQLITE_OK ||
         result == SQLITE_ROW ||
@@ -70,17 +64,13 @@ void checkResult(
     }
 
     throw std::runtime_error(
-        std::string(operation) + " failed: " +
-        sqlite3_errmsg(database));
+        std::string(operation) + " failed: " + sqlite3_errmsg(database));
 }
 
 //------------------------------------------------------------------------------
 
 void bindInt64(
-    sqlite3         *database,
-    sqlite3_stmt    *statement,
-    int              index,
-    std::int64_t     value)
+    sqlite3 *database, sqlite3_stmt *statement, int index, std::int64_t value)
 {
     checkResult(
         database,
@@ -91,9 +81,9 @@ void bindInt64(
 //------------------------------------------------------------------------------
 
 void bindText(
-    sqlite3          *database,
-    sqlite3_stmt     *statement,
-    int               index,
+    sqlite3           *database,
+    sqlite3_stmt      *statement,
+    int                index,
     const std::string &value)
 {
     checkResult(
@@ -109,9 +99,7 @@ void bindText(
 
 //------------------------------------------------------------------------------
 
-std::string columnText(
-    sqlite3_stmt *statement,
-    int           index)
+auto columnText(sqlite3_stmt *statement, int index) -> std::string
 {
     const auto *text = sqlite3_column_text(statement, index);
 
@@ -148,9 +136,7 @@ Task readTask(sqlite3_stmt *statement)
 
 //------------------------------------------------------------------------------
 
-std::optional<Task> findByIdUnlocked(
-    sqlite3 *database,
-    TaskId   id)
+auto findByIdUnlocked(sqlite3 *database, TaskId id) -> std::optional<Task>
 {
     Statement statement(
         database,
@@ -186,13 +172,11 @@ std::optional<Task> findByIdUnlocked(
 
 //------------------------------------------------------------------------------
 
-TaskRepository::TaskRepository(
-    const std::filesystem::path &database_path)
+TaskRepository::TaskRepository(const std::filesystem::path &database_path)
 {
     if (database_path.has_parent_path())
     {
-        std::filesystem::create_directories(
-            database_path.parent_path());
+        std::filesystem::create_directories(database_path.parent_path());
     }
 
     const int result = sqlite3_open_v2(
@@ -205,9 +189,10 @@ TaskRepository::TaskRepository(
 
     if (result != SQLITE_OK)
     {
-        const std::string error = database_ != nullptr
-            ? sqlite3_errmsg(database_)
-            : "unknown SQLite error";
+        const std::string error =
+            (database_ != nullptr) ?
+                sqlite3_errmsg(database_) :
+                "unknown SQLite error";
 
         if (database_ != nullptr)
         {
@@ -215,8 +200,7 @@ TaskRepository::TaskRepository(
             database_ = nullptr;
         }
 
-        throw std::runtime_error(
-            "Unable to open SQLite database: " + error);
+        throw std::runtime_error("Unable to open SQLite database: " + error);
     }
 
     sqlite3_busy_timeout(database_, 5000);
@@ -283,7 +267,7 @@ Task TaskRepository::create(const TaskInput &input)
 
 //------------------------------------------------------------------------------
 
-std::optional<Task> TaskRepository::findById(TaskId id) const
+auto TaskRepository::findById(TaskId id) const -> std::optional<Task>
 {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -292,7 +276,7 @@ std::optional<Task> TaskRepository::findById(TaskId id) const
 
 //------------------------------------------------------------------------------
 
-std::vector<Task> TaskRepository::findAll() const
+auto TaskRepository::findAll() const -> std::vector<Task>
 {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -333,7 +317,7 @@ std::vector<Task> TaskRepository::findAll() const
 
 //------------------------------------------------------------------------------
 
-std::vector<Task> TaskRepository::findScheduled() const
+auto TaskRepository::findScheduled() const -> std::vector<Task>
 {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -375,9 +359,8 @@ std::vector<Task> TaskRepository::findScheduled() const
 
 //------------------------------------------------------------------------------
 
-std::optional<Task> TaskRepository::update(
-    TaskId          id,
-    const TaskInput &input)
+auto TaskRepository::update(TaskId id, const TaskInput &input)
+    -> std::optional<Task>
 {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -420,9 +403,7 @@ bool TaskRepository::remove(TaskId id)
 {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    Statement statement(
-        database_,
-        "DELETE FROM tasks WHERE id = ?;");
+    Statement statement(database_, "DELETE FROM tasks WHERE id = ?;");
 
     bindInt64(database_, statement.get(), 1, id);
 
@@ -512,7 +493,6 @@ void TaskRepository::createSchema()
 {
     execute("PRAGMA journal_mode = WAL;");
     execute("PRAGMA foreign_keys = ON;");
-
     execute(
         R"(
             CREATE TABLE IF NOT EXISTS tasks
@@ -533,7 +513,6 @@ void TaskRepository::createSchema()
                 updated_at_ms   INTEGER NOT NULL
             );
         )");
-
     execute(
         R"(
             CREATE INDEX IF NOT EXISTS idx_tasks_status_scheduled_at
@@ -558,15 +537,17 @@ void TaskRepository::execute(const std::string &sql) const
 
     if (result != SQLITE_OK)
     {
-        const std::string message = error_message != nullptr
-            ? error_message
-            : sqlite3_errmsg(database_);
+        const std::string message =
+            error_message != nullptr ?
+                error_message :
+                sqlite3_errmsg(database_);
 
         sqlite3_free(error_message);
 
-        throw std::runtime_error(
-            "sqlite3_exec failed: " + message);
+        throw std::runtime_error("sqlite3_exec failed: " + message);
     }
 }
+
+//------------------------------------------------------------------------------
 
 } // namespace tasks

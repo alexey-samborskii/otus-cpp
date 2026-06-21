@@ -16,6 +16,8 @@ namespace tasks
 
 class TaskRepository;
 
+//------------------------------------------------------------------------------
+
 struct TaskSchedulerMetrics
 {
     std::uint64_t scheduled_tasks = 0;
@@ -24,6 +26,7 @@ struct TaskSchedulerMetrics
     std::uint64_t failed_tasks    = 0;
     std::uint64_t timer_errors    = 0;
 };
+//------------------------------------------------------------------------------
 
 class TaskScheduler : public std::enable_shared_from_this<TaskScheduler>
 {
@@ -34,15 +37,11 @@ public:
 
     ~TaskScheduler();
 
-    boost::asio::awaitable<void> restore();
-
-    boost::asio::awaitable<void> schedule(Task task);
-
-    boost::asio::awaitable<void> cancel(TaskId id);
-
-    boost::asio::awaitable<void> runNow(Task task);
-
-    TaskSchedulerMetrics metrics() const;
+    auto restore() -> boost::asio::awaitable<void>;
+    auto schedule(Task task) -> boost::asio::awaitable<void>;
+    auto cancel(TaskId id) -> boost::asio::awaitable<void>;
+    auto runNow(Task task) -> boost::asio::awaitable<void>;
+    auto metrics() const -> TaskSchedulerMetrics;
 
 private:
     using Timer = boost::asio::system_timer;
@@ -51,17 +50,19 @@ private:
     void cancelImpl(TaskId id);
     void cancelAllImpl();
 
-    boost::asio::awaitable<void> executeTask(TaskId id);
+    auto executeTask(TaskId id) -> boost::asio::awaitable<void>;
 
 private:
-    boost::asio::strand<boost::asio::any_io_executor> strand_;
-    TaskRepository                                   &repository_;
+    boost::asio::strand<boost::asio::any_io_executor>  strand_;
+    TaskRepository                                    &repository_;
     std::unordered_map<TaskId, std::shared_ptr<Timer>> timers_;
-    std::atomic_uint64_t scheduled_tasks_{0};
-    std::atomic_uint64_t cancelled_tasks_{0};
-    std::atomic_uint64_t completed_tasks_{0};
-    std::atomic_uint64_t failed_tasks_{0};
-    std::atomic_uint64_t timer_errors_{0};
+    std::atomic_uint64_t                               scheduled_tasks_{0};
+    std::atomic_uint64_t                               cancelled_tasks_{0};
+    std::atomic_uint64_t                               completed_tasks_{0};
+    std::atomic_uint64_t                               failed_tasks_{0};
+    std::atomic_uint64_t                               timer_errors_{0};
 };
+
+//------------------------------------------------------------------------------
 
 } // namespace tasks

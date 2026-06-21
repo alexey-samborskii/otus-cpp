@@ -485,8 +485,7 @@ auto installedPublicDirectory() -> std::filesystem::path
 
 //------------------------------------------------------------------------------
 
-bool isUsablePublicDirectory(
-    const std::filesystem::path &directory)
+bool isUsablePublicDirectory(const std::filesystem::path &directory)
 {
     if (directory.empty())
     {
@@ -763,10 +762,7 @@ auto setupShutdownSignalHandling(
     using error_code = boost::system::error_code;
 
     auto signals =
-        std::make_unique<net::signal_set>(
-            io_context,
-            SIGINT,
-            SIGTERM);
+        std::make_unique<net::signal_set>(io_context, SIGINT, SIGTERM);
 
     signals->async_wait(
         [&io_context, web_server](const error_code &error, int signal_number) {
@@ -775,13 +771,8 @@ auto setupShutdownSignalHandling(
                 return;
             }
 
-            std::ostringstream message;
-
-            message << "Received signal "
-                    << signal_number
-                    << ", stop server";
-
-            common::logInfo(message.str());
+            common::logInfo("Received signal : " +
+                            std::to_string(signal_number) + ", stop server");
 
             web_server->stop();
             io_context.stop();
@@ -811,12 +802,8 @@ void spawnRestoreScheduledTasks(
             }
             catch (const std::exception &exception)
             {
-                std::ostringstream message;
-
-                message << "[scheduler] restore error: "
-                        << exception.what();
-
-                common::logError(message.str());
+                common::logError("[scheduler] restore error: " +
+                                 std::string(exception.what()));
             }
             catch (...)
             {
@@ -845,12 +832,8 @@ void spawnWebServerAcceptLoop(
                 }
                 catch (const std::exception &exception)
                 {
-                    std::ostringstream message;
-
-                    message << "[server] acceptor error: "
-                            << exception.what();
-
-                    common::logError(message.str());
+                    common::logError("[server] acceptor error: " +
+                                     std::string(exception.what()));
                 }
                 catch (...)
                 {
@@ -893,39 +876,28 @@ auto makeHandlerWithException(
 
         try
         {
-            server::HttpResponse response =
-                co_await request_handler(std::move(request));
+            auto response = co_await request_handler(std::move(request));
 
             metrics->recordResponse(response.status);
 
             co_return response;
         }
-        catch (const boost::system::system_error &error)
+        catch (const boost::system::system_error &exception)
         {
-            if (error.code() == net::error::operation_aborted)
+            if (exception.code() == net::error::operation_aborted)
             {
                 throw;
             }
 
             metrics->recordException();
-
-            std::ostringstream message;
-
-            message << "[request handler] system error: "
-                    << error.what();
-
-            common::logError(message.str());
+            common::logError("[request handler] system error: " +
+                             std::string(exception.what()));
         }
-        catch (const std::exception &error)
+        catch (const std::exception &exception)
         {
             metrics->recordException();
-
-            std::ostringstream message;
-
-            message << "[request handler] exception: "
-                    << error.what();
-
-            common::logError(message.str());
+            common::logError("[request handler] system error: " +
+                             std::string(exception.what()));
         }
         catch (...)
         {
@@ -988,12 +960,10 @@ auto makeRequestHandler(
 
         if (target.starts_with("/api/"))
         {
-            co_return co_await request_handler_api->handle(
-                std::move(request));
+            co_return co_await request_handler_api->handle(std::move(request));
         }
 
-        co_return request_handler_static_file->handle(
-            std::move(request));
+        co_return request_handler_static_file->handle(std::move(request));
     };
 
     return makeHandlerWithException(std::move(request_handler), metrics);
@@ -1009,8 +979,7 @@ auto makeConfiguration(int argc, char *argv[]) -> ProgramOptions
 
     if (!config.config_file.empty())
     {
-        common::logInfo(
-            "Config file loaded: " + config.config_file.string());
+        common::logInfo("Config file loaded: " + config.config_file.string());
     }
 
     config.public_dir = resolvePublicDirectory(config);
@@ -1023,20 +992,20 @@ auto makeConfiguration(int argc, char *argv[]) -> ProgramOptions
 void run(const ProgramOptions &config, net::io_context &io_context)
 {
     {
-        std::ostringstream message;
+        std::ostringstream ss;
 
         const char *protocol =
             (config.protocol == ServerProtocol::kHttps ? "https" : "http");
 
-        message << "Server started:\n"
-                << "  protocol..........: " << protocol << '\n'
-                << "  listen endpoint...: " << config.host << ':'
-                << config.port << '\n'
-                << "  public directory..: " << config.public_dir << '\n'
-                << "  SQLite database...: " << config.database_file << '\n'
-                << "  worker threads....: " << config.threads;
+        ss << "Server started:\n"
+           << "  protocol         : " << protocol << '\n'
+           << "  listen endpoint  : " << config.host << ':'
+           << config.port << '\n'
+           << "  public directory : " << config.public_dir << '\n'
+           << "  SQLite database  : " << config.database_file << '\n'
+           << "  worker threads   : " << config.threads;
 
-        common::logInfo(message.str());
+        common::logInfo(ss.str());
     }
 
     std::vector<std::thread> workers;
@@ -1045,9 +1014,7 @@ void run(const ProgramOptions &config, net::io_context &io_context)
 
     for (std::size_t index = 1; index < config.threads; ++index)
     {
-        workers.emplace_back([&io_context]() {
-            io_context.run();
-        });
+        workers.emplace_back([&io_context]() { io_context.run(); });
     }
 
     io_context.run();
@@ -1066,14 +1033,11 @@ int main(int argc, char *argv[])
 {
     try
     {
-        auto config =
-            makeConfiguration(argc, argv);
+        auto config = makeConfiguration(argc, argv);
 
-        auto io_context =
-            net::io_context{};
+        auto io_context = net::io_context{};
 
-        auto task_repository =
-            tasks::TaskRepository{config.database_file};
+        auto task_repository = tasks::TaskRepository{config.database_file};
 
         auto task_scheduler =
             std::make_shared<tasks::TaskScheduler>(
@@ -1105,13 +1069,13 @@ int main(int argc, char *argv[])
 
         return EXIT_SUCCESS;
     }
-    catch (const std::exception &error)
+    catch (const std::exception &exception)
     {
-        common::logError("Fatal error: " + std::string(error.what()));
+        common::logError("Fatal error: " + std::string(exception.what()));
     }
     catch (...)
     {
-        common::logError("Fatal unknown exception.");
+        common::logError("Fatal error: unknown exception.");
     }
 
     return EXIT_FAILURE;

@@ -5,6 +5,8 @@
 
 namespace tasks
 {
+    
+//------------------------------------------------------------------------------
 
 std::string toString(TaskStatus status)
 {
@@ -63,5 +65,7 @@ std::int64_t currentUnixTimeMs()
                now.time_since_epoch())
         .count();
 }
+
+//------------------------------------------------------------------------------
 
 } // namespace tasks

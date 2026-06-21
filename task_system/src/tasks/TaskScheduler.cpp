@@ -202,9 +202,7 @@ void TaskScheduler::cancelAllImpl()
         {
             std::ostringstream message;
             message << "[scheduler] unable to cancel timer for task "
-                    << id
-                    << ": "
-                    << error.message();
+                    << id << ": " << error.message();
             common::logError(message.str());
         }
     }
@@ -231,12 +229,10 @@ net::awaitable<void> TaskScheduler::executeTask(TaskId id)
         }
 
         {
-            std::ostringstream message;
-            message << "[scheduler] executing task "
-                    << task->id
-                    << ": "
-                    << task->title;
-            common::logInfo(message.str());
+            std::ostringstream ss;
+            ss << "[scheduler] executing task " << task->id << ": "
+               << task->title;
+            common::logInfo(ss.str());
         }
 
         net::steady_timer execution_delay(strand_);
@@ -249,9 +245,9 @@ net::awaitable<void> TaskScheduler::executeTask(TaskId id)
         completed_tasks_.fetch_add(1, std::memory_order_relaxed);
 
         {
-            std::ostringstream message;
-            message << "[scheduler] task " << id << " completed";
-            common::logInfo(message.str());
+            std::ostringstream ss;
+            ss << "[scheduler] task " << id << " completed";
+            common::logInfo(ss.str());
         }
     }
     catch (const std::exception &error)
@@ -260,27 +256,19 @@ net::awaitable<void> TaskScheduler::executeTask(TaskId id)
 
         try
         {
-            repository_.setStatus(
-                id,
-                TaskStatus::kFailed,
-                error.what());
+            repository_.setStatus(id, TaskStatus::kFailed, error.what());
         }
         catch (const std::exception &status_error)
         {
-            std::ostringstream message;
-            message << "[scheduler] unable to mark task "
-                    << id
-                    << " as failed: "
-                    << status_error.what();
-            common::logError(message.str());
+            std::ostringstream ss;
+            ss << "[scheduler] unable to mark task " << id << " as failed: "
+               << status_error.what();
+            common::logError(ss.str());
         }
 
-        std::ostringstream message;
-        message << "[scheduler] task "
-                << id
-                << " failed: "
-                << error.what();
-        common::logError(message.str());
+        std::ostringstream ss;
+        ss << "[scheduler] task " << id << " failed: " << error.what();
+        common::logError(ss.str());
     }
 }
 

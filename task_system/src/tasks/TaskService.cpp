@@ -16,6 +16,8 @@ namespace net = boost::asio;
 namespace tasks
 {
 
+//------------------------------------------------------------------------------
+
 TaskNotFoundError::TaskNotFoundError(const std::string &message)
     : std::runtime_error(message)
 {
@@ -166,5 +168,7 @@ void TaskService::validate(const TaskInput &input)
             "scheduledAt must contain Unix time in milliseconds");
     }
 }
+
+//------------------------------------------------------------------------------
 
 } // namespace tasks

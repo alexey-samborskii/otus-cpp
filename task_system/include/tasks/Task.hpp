@@ -9,6 +9,8 @@ namespace tasks
 
 using TaskId = std::int64_t;
 
+//------------------------------------------------------------------------------
+
 enum class TaskStatus
 {
     kScheduled = 0,
@@ -17,6 +19,7 @@ enum class TaskStatus
     kFailed
 };
 
+//------------------------------------------------------------------------------
 struct Task
 {
     TaskId                     id = 0;
@@ -29,6 +32,8 @@ struct Task
     std::int64_t               updated_at_ms = 0;
 };
 
+//------------------------------------------------------------------------------
+
 struct TaskInput
 {
     std::string  title;
@@ -36,8 +41,12 @@ struct TaskInput
     std::int64_t scheduled_at_ms = 0;
 };
 
+//------------------------------------------------------------------------------
+
 std::string toString(TaskStatus status);
 TaskStatus taskStatusFromString(const std::string &value);
 std::int64_t currentUnixTimeMs();
+
+//------------------------------------------------------------------------------
 
 } // namespace tasks
