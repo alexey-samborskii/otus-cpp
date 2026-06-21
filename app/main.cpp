@@ -19,7 +19,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <algorithm>
-#include <cctype>
+#include <charconv>
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
@@ -27,12 +27,12 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <thread>
 #include <utility>
@@ -118,91 +118,69 @@ std::string normalizeConfigKey(std::string value)
 
 //------------------------------------------------------------------------------
 
-bool containsOnlyDigits(const std::string &value)
+template <typename Value>
+auto parseUnsignedInteger(
+    std::string_view value,
+    const char      *invalid_message,
+    const char      *range_message) -> Value
 {
-    return !value.empty() &&
-           std::all_of(
-               value.begin(),
-               value.end(),
-               [](unsigned char character) {
-                   return std::isdigit(character);
-               });
+    Value result{};
+
+    const char *begin = value.data();
+    const char *end   = begin + value.size();
+
+    const auto [position, error] = std::from_chars(begin, end, result);
+
+    if (error == std::errc::invalid_argument || position != end)
+    {
+        throw std::invalid_argument(invalid_message);
+    }
+
+    if (error == std::errc::result_out_of_range)
+    {
+        throw std::invalid_argument(range_message);
+    }
+
+    return result;
 }
 
 //------------------------------------------------------------------------------
 
-auto parsePort(const std::string &value) -> std::uint16_t
+auto parsePort(std::string_view value) -> std::uint16_t
 {
-    if (!containsOnlyDigits(value))
-    {
-        throw std::invalid_argument("Port must contain only digits");
-    }
+    const auto parsed = parseUnsignedInteger<unsigned int>(
+        value,
+        "Port must contain only digits",
+        "Port must be in range 1..65535");
 
-    try
-    {
-        std::size_t parsed_characters = 0;
-
-        const unsigned long parsed = std::stoul(value, &parsed_characters);
-
-        if (parsed_characters != value.size())
-        {
-            throw std::invalid_argument("Port must contain only digits");
-        }
-
-        if (parsed == 0 || parsed > 65535)
-        {
-            throw std::invalid_argument("Port must be in range 1..65535");
-        }
-
-        return static_cast<std::uint16_t>(parsed);
-    }
-    catch (const std::out_of_range &)
+    if (parsed == 0 || parsed > 65535)
     {
         throw std::invalid_argument("Port must be in range 1..65535");
     }
+
+    return static_cast<std::uint16_t>(parsed);
 }
 
 //------------------------------------------------------------------------------
 
-auto parseThreadCount(const std::string &value) -> std::size_t
+auto parseThreadCount(std::string_view value) -> std::size_t
 {
-    if (!containsOnlyDigits(value))
+    const auto parsed = parseUnsignedInteger<std::size_t>(
+        value,
+        "Thread count must contain only digits",
+        "Thread count is too large");
+
+    if (parsed == 0)
     {
-        throw std::invalid_argument("Thread count must contain only digits");
+        throw std::invalid_argument("Thread count must be greater zero");
     }
 
-    try
-    {
-        std::size_t parsed_characters = 0;
-
-        const unsigned long parsed = std::stoul(value, &parsed_characters);
-
-        if (parsed_characters != value.size())
-        {
-            throw std::invalid_argument("Thread count must contain only digits");
-        }
-
-        if (parsed == 0)
-        {
-            throw std::invalid_argument("Thread count must be greater zero");
-        }
-
-        if (parsed > std::numeric_limits<std::size_t>::max())
-        {
-            throw std::invalid_argument("Thread count is too large");
-        }
-
-        return static_cast<std::size_t>(parsed);
-    }
-    catch (const std::out_of_range &)
-    {
-        throw std::invalid_argument("Thread count is too large");
-    }
+    return parsed;
 }
 
 //------------------------------------------------------------------------------
 
-ServerProtocol parseProtocol(const std::string &value)
+ServerProtocol parseProtocol(std::string_view value)
 {
     if (value == "http")
     {
